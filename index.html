@@ -214,7 +214,7 @@ body.live main{max-width:none;margin:0;padding:0}
 </head>
 <body>
 <header>
-  <div class="logo"><div class="ball"></div><span>Placar de Sinuca</span></div>
+  <div class="logo"><div class="ball"></div><span>Placar de Sinuca <small id="hv" style="font-weight:600;color:var(--mut);font-size:.65rem"></small></span></div>
   <div class="today" id="today"></div>
 </header>
 <main id="app"></main>
@@ -228,6 +228,9 @@ body.live main{max-width:none;margin:0;padding:0}
 
 /* ======== Constantes e utilidades ======== */
 const MEU_NOME='Renato';
+const APP_VERSION='1.1.0';
+const VER_URL='https://raw.githubusercontent.com/rdouradovisciano-cyber/placar-sinuca/main/version.json';
+const APK_URL='https://github.com/rdouradovisciano-cyber/placar-sinuca/releases/latest';
 const KEY_M='sinuca_partidas_v1', KEY_C='sinuca_atual_v1';
 const DIAS=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 const DIAS_C=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -580,6 +583,10 @@ function viewData(){
     <h3>Importar backup</h3>
     <input type="file" id="iFile" accept=".json,application/json">
     <div class="hint">Aceita arquivos JSON exportados por este app. As partidas importadas são somadas às atuais (sem duplicar).</div>
+    <h3>Atualização</h3>
+    <div class="row sp" style="margin-bottom:10px"><span>Versão instalada</span><b style="color:var(--gold)">v${APP_VERSION}</b></div>
+    <button class="btn ghost block" id="xUpd">🔄 Verificar atualização</button>
+    <div class="hint" id="updMsg">Se o app parecer desatualizado, toque aqui. Suas partidas não são apagadas.</div>
     <h3>Zona de risco</h3>
     <button class="btn red block" id="xAll">Apagar todas as partidas</button>
   </div>`;
@@ -627,6 +634,39 @@ function importFile(file){
   rd.readAsText(file);
 }
 
+/* ======== Atualização ======== */
+function verNum(v){return String(v).split('.').map(n=>parseInt(n)||0)}
+function verMaior(a,b){const x=verNum(a),y=verNum(b);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d>0}return false}
+async function recarregarLimpo(){
+  try{const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.unregister()))}catch(e){}
+  try{const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}catch(e){}
+  location.href=location.pathname+'?atualizado='+Date.now();
+}
+async function verificarAtualizacao(){
+  const msg=$('#updMsg'),btn=$('#xUpd');
+  const say=t=>{if(msg)msg.textContent=t};
+  if(btn)btn.disabled=true;say('Verificando…');
+  try{
+    const r=await fetch(VER_URL+'?t='+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw 0;
+    const j=await r.json();const nova=j.versao;
+    const native=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
+    if(nova&&verMaior(nova,APP_VERSION)){
+      if(native){
+        say('Nova versão v'+nova+' disponível'+(j.nota?': '+j.nota:'')+'.');
+        if(confirm('Nova versão v'+nova+' disponível.\n\nAbrir a página para baixar o novo APK?\n(Suas partidas continuam salvas ao instalar por cima.)'))window.open(APK_URL,'_blank');
+      }else{
+        say('Atualizando para v'+nova+'…');
+        await recarregarLimpo();return;
+      }
+    }else{
+      say('Você já está na versão mais recente (v'+APP_VERSION+').');
+      if(!native&&confirm('Você já está na versão mais recente.\n\nQuer recarregar o app mesmo assim, limpando o cache?'))await recarregarLimpo();
+    }
+  }catch(e){say('Não foi possível verificar. Confira a internet e tente de novo.')}
+  if(btn)btn.disabled=false;
+}
+
 /* ======== Eventos globais ======== */
 document.addEventListener('click',e=>{
   const t=e.target.closest('button,[data-opp],[data-act],[data-go]');if(!t)return;
@@ -647,6 +687,7 @@ document.addEventListener('click',e=>{
     case 'bZero':if(cur&&(cur.me||cur.op)&&confirm('Zerar os pontos do set atual?')){snap();cur.me=0;cur.op=0;saveC();render()}break;
     case 'bEnd':endMatch();break;
     case 'bDrop':if(confirm('Descartar esta partida sem salvar?')){cur=null;saveC();try{wake&&wake.release()}catch(e){}render()}break;
+    case 'xUpd':verificarAtualizacao();break;
     case 'xJson':exportJSON();break;
     case 'xCsv':exportCSV();break;
     case 'xAll':if(matches.length&&confirm('Apagar TODAS as '+matches.length+' partidas? Isso não pode ser desfeito.')&&confirm('Tem certeza? Exporte um backup antes se precisar.')){matches=[];saveM();toast('Dados apagados');render()}break;
@@ -654,6 +695,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{if(e.target.id==='iFile'&&e.target.files[0]){importFile(e.target.files[0]);e.target.value=''}});
 
+$('#hv').textContent='v'+APP_VERSION;
 render();
 if(cur)keepAwake();
 if('serviceWorker' in navigator&&location.protocol!=='file:'){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
