@@ -584,6 +584,13 @@ function viewData(){
   </div>`;
 }
 function download(name,text,type){
+  const C=window.Capacitor,P=C&&C.Plugins;
+  if(C&&C.isNativePlatform&&C.isNativePlatform()&&P&&P.Filesystem&&P.Share){
+    P.Filesystem.writeFile({path:name,data:text,directory:'CACHE',encoding:'utf8'})
+      .then(r=>P.Share.share({title:name,url:r.uri,dialogTitle:'Salvar ou enviar backup'}))
+      .catch(e=>{if(!/cancel/i.test(String(e&&e.message||e)))toast('Não foi possível exportar')});
+    return;
+  }
   const b=new Blob([text],{type});const a=document.createElement('a');
   a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);

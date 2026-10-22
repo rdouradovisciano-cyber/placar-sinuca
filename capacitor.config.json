@@ -1,0 +1,7 @@
+{
+  "appId": "com.sinuca.placar",
+  "appName": "Placar de Sinuca",
+  "webDir": "www",
+  "backgroundColor": "#06120d",
+  "android": { "backgroundColor": "#06120d" }
+}

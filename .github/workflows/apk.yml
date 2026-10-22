@@ -1,0 +1,57 @@
+name: Gerar APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Instalar dependências
+        run: npm install
+
+      - name: Copiar o site para www
+        run: |
+          mkdir -p www
+          cp index.html manifest.webmanifest sw.js icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png www/
+
+      - name: Criar projeto Android
+        run: |
+          npx cap add android
+          npx capacitor-assets generate --android --iconBackgroundColor '#0d3b29' --iconBackgroundColorDark '#0d3b29' --splashBackgroundColor '#06120d' --splashBackgroundColorDark '#06120d'
+          npx cap sync android
+
+      - name: Compilar APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Guardar APK como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: placar-sinuca-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publicar em Releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk placar-sinuca.apk
+          gh release create "apk-${{ github.run_number }}" placar-sinuca.apk \
+            --title "Placar de Sinuca (build ${{ github.run_number }})" \
+            --notes "APK para instalar no Android. Baixe o arquivo placar-sinuca.apk e abra no celular."
