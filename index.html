@@ -227,6 +227,7 @@ body.live main{max-width:none;margin:0;padding:0}
 'use strict';
 
 /* ======== Constantes e utilidades ======== */
+const MEU_NOME='Renato';
 const KEY_M='sinuca_partidas_v1', KEY_C='sinuca_atual_v1';
 const DIAS=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 const DIAS_C=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -321,7 +322,7 @@ function viewSetup(){
   return `<h2>Nova partida</h2>
   <div class="card">
     <div class="field"><label>Jogadores</label>
-      <div class="row" style="gap:8px"><div class="chip" style="flex:0 0 auto"><b>Eu</b></div><span style="color:var(--mut)">vs</span>
+      <div class="row" style="gap:8px"><div class="chip" style="flex:0 0 auto"><b>${MEU_NOME}</b></div><span style="color:var(--mut)">vs</span>
       <input id="sOpp" list="opList" placeholder="Nome do adversário" value="${esc(setup.opp)}" autocomplete="off" style="flex:1"></div>
       <datalist id="opList">${ops.map(o=>`<option value="${esc(o[1])}">`).join('')}</datalist>
     </div>
@@ -374,7 +375,7 @@ function viewLive(){
   bump=null;
   return `<div class="lv">
     ${half('op',c.opp,c.op,c.setsOp,'opp')}
-    ${half('me','Eu',c.me,c.setsMe,'me')}
+    ${half('me',MEU_NOME,c.me,c.setsMe,'me')}
     <div class="mid">${t.nome} · Set ${c.log.length+1} · meta ${c.meta}</div>
     <button class="fab l" id="bUndo" aria-label="Desfazer" ${c.undo.length?'':'disabled'}>↶</button>
     <button class="fab r" id="bMenu" aria-label="Menu">⋯</button>
@@ -387,7 +388,7 @@ function openMenu(){
   $('#modalRoot').innerHTML=`<div class="ov" id="ov"><div class="modal">
     <h2>Menu da partida</h2>
     <div class="hint" style="margin:0 0 8px">${t.nome} · meta ${c.meta} · ${fmtD(c.date)} · ${DIAS_C[dow(c.date)]}${c.setsToWin?' · vence com '+c.setsToWin+' sets':''}</div>
-    ${[['me','Eu',c.setsMe],['op',c.opp,c.setsOp]].map(([w,n,v])=>`<div class="trow"><div class="nm">Sets de ${esc(n)}</div><div class="setadj"><button data-mact="setsub" data-who="${w}">−</button><b>${v}</b><button data-mact="setadd" data-who="${w}">+</button></div></div>`).join('')}
+    ${[['me',MEU_NOME,c.setsMe],['op',c.opp,c.setsOp]].map(([w,n,v])=>`<div class="trow"><div class="nm">Sets de ${esc(n)}</div><div class="setadj"><button data-mact="setsub" data-who="${w}">−</button><b>${v}</b><button data-mact="setadd" data-who="${w}">+</button></div></div>`).join('')}
     ${c.log.length?`<div class="setlog" style="justify-content:flex-start;margin:10px 0">${c.log.map((x,i)=>`<span class="${x.w==='me'?'w':'l'}">S${i+1}: ${x.me}×${x.op}</span>`).join('')}</div>`:''}
     <div class="grid g2" style="margin:12px 0">
       <button class="btn ghost" id="mUndo" ${c.undo.length?'':'disabled style="opacity:.4"'}>↶ Desfazer</button>
@@ -414,7 +415,7 @@ function act(a,who){
       const w=who;
       c.log.push({w,me:c.me,op:c.op});
       if(w==='me')c.setsMe++;else c.setsOp++;
-      const nome=w==='me'?'Você':c.opp;
+      const nome=w==='me'?MEU_NOME:c.opp;
       c.me=0;c.op=0;vib([60,40,60]);
       toast('🏆 Set para '+nome+'!');
       saveC();render();
@@ -511,8 +512,8 @@ function itemHist(m){
     <div class="mdate"><b>${fmtD(m.date).slice(0,5)}</b>${DIAS_C[dow(m.date)]}<br>${m.date.slice(0,4)}</div>
     <div class="minfo"><div class="o">vs ${esc(m.opp)}</div>
       <div class="t">${TIPOS[m.tipo]?TIPOS[m.tipo].nome:esc(m.tipo)} · meta ${m.meta||'-'}</div>
-      <div style="margin-top:5px"><span class="badge ${r}" style="margin:0">${r==='w'?'EU VENCI':r==='l'?'EU PERDI':'EMPATE'}</span></div></div>
-    <div class="mscore" style="text-align:center">${m.setsMe}×${m.setsOp}<div style="font-size:.62rem;font-weight:600;color:var(--mut);max-width:84px;overflow:hidden;text-overflow:ellipsis">Eu × ${esc(m.opp)}</div></div>
+      <div style="margin-top:5px"><span class="badge ${r}" style="margin:0">${r==='w'?MEU_NOME.toUpperCase()+' VENCEU':r==='l'?MEU_NOME.toUpperCase()+' PERDEU':'EMPATE'}</span></div></div>
+    <div class="mscore" style="text-align:center">${m.setsMe}×${m.setsOp}<div style="font-size:.62rem;font-weight:600;color:var(--mut);max-width:84px;overflow:hidden;text-overflow:ellipsis">${esc(MEU_NOME)} × ${esc(m.opp)}</div></div>
     <div class="mact"><button class="ibtn" data-edit="${m.id}" title="Editar">✏️</button><button class="ibtn" data-del="${m.id}" title="Apagar">🗑️</button></div>
   </div>`;
 }
