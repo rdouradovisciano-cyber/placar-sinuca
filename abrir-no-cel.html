@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abrir Placar no Celular</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#06120d;color:#f3f6f1;margin:0;padding:24px;text-align:center}
+h1{color:#e6b94d}
+.url{background:#0a1f16;border:1px solid #22503a;border-radius:12px;padding:12px;font-size:1.1rem;word-break:break-all;margin:16px 0}
+img{background:#fff;padding:8px;border-radius:12px;margin:16px 0}
+.hint{color:#8fb09d;font-size:.9rem;margin-top:12px}
+</style>
+</head>
+<body>
+<h1>Placar de Sinuca</h1>
+<p>Abra este endereço no celular (mesma rede Wi-Fi):</p>
+<div class="url">http://192.168.0.6:8081</div>
+<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=http://192.168.0.6:8081" alt="QR Code">
+<p class="hint">Escaneie o QR code com a câmera do celular.<br>O servidor precisa estar rodando no PC (servidor2.ps1).</p>
+</body>
+</html>

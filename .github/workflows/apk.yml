@@ -29,7 +29,7 @@ jobs:
       - name: Copiar o site para www
         run: |
           mkdir -p www
-          cp index.html version.json manifest.webmanifest sw.js icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png www/
+          cp index.html version.json manifest.webmanifest sw.js icon.svg icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png www/
 
       - name: Criar projeto Android
         run: |
