@@ -37,6 +37,13 @@ jobs:
           npx capacitor-assets generate --android --iconBackgroundColor '#0d3b29' --iconBackgroundColorDark '#0d3b29' --splashBackgroundColor '#06120d' --splashBackgroundColorDark '#06120d'
           npx cap sync android
 
+      - name: Usar a chave fixa de assinatura (permite instalar por cima)
+        run: |
+          mkdir -p ~/.android
+          cp signing/debug.keystore ~/.android/debug.keystore
+          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/" android/app/build.gradle
+          grep -n "versionCode" android/app/build.gradle
+
       - name: Compilar APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
@@ -54,4 +61,4 @@ jobs:
           cp android/app/build/outputs/apk/debug/app-debug.apk placar-sinuca.apk
           gh release create "apk-${{ github.run_number }}" placar-sinuca.apk \
             --title "Placar de Sinuca (build ${{ github.run_number }})" \
-            --notes "APK para instalar no Android. Baixe o arquivo placar-sinuca.apk e abra no celular."
+            --notes "APK para instalar no Android. O app carrega o site publicado, então as próximas atualizações chegam sozinhas (botão Verificar atualização na aba Backup)."

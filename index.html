@@ -235,7 +235,7 @@ body.live main{max-width:none;margin:0;padding:0}
 /* ======== Constantes e utilidades ======== */
 const MEU_NOME='Renato';
 const OPP_DEFAULT='Cabelo';
-const APP_VERSION='1.4.1';
+const APP_VERSION='1.5.0';
 const VER_URL='https://raw.githubusercontent.com/rdouradovisciano-cyber/placar-sinuca/main/version.json';
 const APK_URL='https://github.com/rdouradovisciano-cyber/placar-sinuca/releases/latest';
 const KEY_M='sinuca_partidas_v1', KEY_C='sinuca_atual_v1', KEY_B='sinuca_backup_v1', KEY_CB='sinuca_atual_backup_v1';
@@ -258,6 +258,22 @@ function pillDia(s){const w=dow(s);return JOGO.includes(w)?`<span class="pill on
 function vib(n){try{navigator.vibrate&&navigator.vibrate(n)}catch(e){}}
 function load(k,def){try{const v=JSON.parse(localStorage.getItem(k));return v==null?def:v}catch(e){return def}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){toast('Sem espaço para salvar!')}}
+
+/* ======== Cores dos jogadores ======== */
+const KEY_P='sinuca_cores_jog_v1';
+const COR_PADRAO={me:'#a6000e',op:'#0029e6'};
+const COR_OPCOES=['#0029e6','#a6000e','#0a7a3d','#d97706','#6d28d9','#be185d','#0e7490','#374151','#111111','#f5f5f0'];
+function loadPC(){let v=null;try{v=JSON.parse(localStorage.getItem(KEY_P))}catch(e){}const ok=h=>typeof h==='string'&&/^#[0-9a-fA-F]{6}$/.test(h);return {me:v&&ok(v.me)?v.me:COR_PADRAO.me,op:v&&ok(v.op)?v.op:COR_PADRAO.op}}
+function savePC(c){try{localStorage.setItem(KEY_P,JSON.stringify(c))}catch(e){}}
+function fgDe(hex){const [r,g,b]=hexToRgb(hex);return (0.299*r+0.587*g+0.114*b)>160?'#111111':'#ffffff'}
+function setPC(who,hex,keepUI){const c=loadPC();c[who]=hex;savePC(c);render();if(cur&&!keepUI)refreshPCUI()}
+function pcRows(){
+  const c=cur,pc=loadPC();
+  return [['me',MEU_NOME],['op',c.opp]].map(([w,n])=>`<div style="margin:6px 0 12px"><div class="hint" style="margin:0 0 6px">Cor de ${esc(n)}</div>
+    <div class="row" style="gap:8px">${COR_OPCOES.map(h=>`<button data-pcor="${w}|${h}" aria-label="${h}" style="width:36px;height:36px;border-radius:50%;border:${pc[w].toLowerCase()===h?'3px solid var(--gold)':'2px solid var(--line)'};background:${h};cursor:pointer;padding:0"></button>`).join('')}
+    <input type="color" data-pcolor="${w}" value="${pc[w]}" style="width:44px;height:36px;padding:2px;border-radius:10px"></div></div>`).join('');
+}
+function refreshPCUI(){const b=$('#pcBox');if(b)b.innerHTML=pcRows()}
 
 /* ======== Tema / cores ======== */
 const KEY_T='sinuca_tema_v1';
@@ -409,7 +425,7 @@ function bindSetup(){
 function viewLive(){
   const c=cur,t=TIPOS[c.tipo];
   const half=(who,nome,pts,sets,cls)=>`
-  <div class="half ${cls}" data-act="add" data-who="${who}">
+  <div class="half ${cls}" data-act="add" data-who="${who}" style="background:${loadPC()[who]};color:${fgDe(loadPC()[who])}">
     <div class="hd"><div class="lname" ${who==='op'?'data-oppname="1"':''}>${esc(nome)}</div><div class="lsets">Sets ${sets}</div></div>
     <button class="mn" data-act="sub" data-who="${who}" aria-label="Tirar 1 ponto">−</button>
     <div class="num ${bump===who?'pop':''}">${pts}</div>
@@ -432,6 +448,8 @@ function openMenu(){
     <div class="hint" style="margin:0 0 8px">${t.nome} · meta ${c.meta} · ${fmtD(c.date)} · ${DIAS_C[dow(c.date)]}${c.setsToWin?' · vence com '+c.setsToWin+' sets':''}</div>
     ${[['me',MEU_NOME,c.setsMe],['op',c.opp,c.setsOp]].map(([w,n,v])=>`<div class="trow"><div class="nm">Sets de ${esc(n)}</div><div class="setadj"><button data-mact="setsub" data-who="${w}">−</button><b>${v}</b><button data-mact="setadd" data-who="${w}">+</button></div></div>`).join('')}
     ${c.log.length?`<div class="setlog" style="justify-content:flex-start;margin:10px 0">${c.log.map((x,i)=>`<span class="${x.w==='me'?'w':'l'}">S${i+1}: ${x.me}×${x.op}</span>`).join('')}</div>`:''}
+    <h3 style="margin:14px 0 4px">Cores dos jogadores</h3>
+    <div id="pcBox">${pcRows()}</div>
     <div class="grid g2" style="margin:12px 0">
       <button class="btn ghost" id="mUndo" ${c.undo.length?'':'disabled style="opacity:.4"'}>↶ Desfazer</button>
       <button class="btn ghost" id="mZero">⟲ Zerar set</button>
@@ -735,7 +753,7 @@ async function verificarAtualizacao(){
     const r=await fetch(VER_URL+'?t='+Date.now(),{cache:'no-store'});
     if(!r.ok)throw 0;
     const j=await r.json();const nova=j.versao;
-    const native=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
+    const native=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())&&location.hostname==='localhost';
     if(nova&&verMaior(nova,APP_VERSION)){
       if(native){
         say('Nova versão v'+nova+' disponível'+(j.nota?': '+j.nota:'')+'.');
@@ -774,6 +792,7 @@ document.addEventListener('contextmenu',e=>{if(e.target.closest('[data-oppname]'
 document.addEventListener('click',e=>{
   if(oppLongFired){oppLongFired=false;e.stopPropagation();e.preventDefault();return}
   const t=e.target.closest('button,[data-opp],[data-act],[data-go]');if(!t)return;
+  if(t.dataset.pcor){const [w,h]=t.dataset.pcor.split('|');setPC(w,h);return}
   if(t.dataset.act){act(t.dataset.act,t.dataset.who);return}
   if(t.dataset.mact){act(t.dataset.mact,t.dataset.who);openMenu();return}
   if(t.dataset.go){closeMenu();tab=t.dataset.go;render();return}
@@ -800,6 +819,7 @@ document.addEventListener('click',e=>{
     case 'xAll':if(matches.length&&confirm('Apagar TODAS as '+matches.length+' partidas? Isso não pode ser desfeito.')&&confirm('Tem certeza? Exporte um backup antes se precisar.')){matches=[];saveM();toast('Dados apagados');render()}break;
   }
 });
+document.addEventListener('input',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.pcolor)setPC(el.dataset.pcolor,el.value,true)});
 document.addEventListener('change',e=>{if(e.target.id==='iFile'&&e.target.files[0]){importFile(e.target.files[0]);e.target.value=''}});
 
 $('#hv').textContent='v'+APP_VERSION;

@@ -3,5 +3,9 @@
   "appName": "Placar de Sinuca",
   "webDir": "www",
   "backgroundColor": "#06120d",
+  "server": {
+    "url": "https://rdouradovisciano-cyber.github.io/placar-sinuca/",
+    "cleartext": false
+  },
   "android": { "backgroundColor": "#06120d" }
 }
