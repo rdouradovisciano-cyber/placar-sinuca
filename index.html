@@ -196,7 +196,7 @@ body.live main{max-width:none;margin:0;padding:0}
 </head>
 <body>
 <header>
-  <div class="logo"><img class="ballimg" src="icon.svg" alt="Bola 8"><span>Placar de Sinuca <small id="hv" style="font-weight:600;color:var(--mut);font-size:.65rem"></small></span></div>
+  <div class="logo"><img class="ballimg" src="icon.svg" alt="Bola 8"><span>Placar de Sinuca <button id="hv" style="background:none;border:0;color:var(--mut);font-weight:600;font-size:.65rem;cursor:pointer;padding:0 2px" title="Verificar atualização">v0</button></span></div>
   <div class="today" id="today"></div>
 </header>
 <main id="app"></main>
@@ -211,7 +211,7 @@ body.live main{max-width:none;margin:0;padding:0}
 /* ======== Constantes e utilidades ======== */
 const MEU_NOME='Renato';
 const OPP_DEFAULT='Cabelo';
-const APP_VERSION='2.2.1';
+const APP_VERSION='2.2.2';
 const VER_URL='https://raw.githubusercontent.com/rdouradovisciano-cyber/placar-sinuca/main/version.json';
 const APK_URL='https://github.com/rdouradovisciano-cyber/placar-sinuca/releases/latest';
 const KEY_M='sinuca_partidas_v1', KEY_C='sinuca_atual_v1', KEY_B='sinuca_backup_v1', KEY_CB='sinuca_atual_backup_v1';
@@ -886,7 +886,7 @@ async function recarregarLimpo(){
 }
 async function verificarAtualizacao(){
   const msg=$('#updMsg'),btn=$('#xUpd');
-  const say=t=>{if(msg)msg.textContent=t};
+  const say=t=>{if(msg)msg.textContent=t;else toast(t)};
   if(btn)btn.disabled=true;say('Verificando…');
   try{
     const r=await fetch(VER_URL+'?t='+Date.now(),{cache:'no-store'});
@@ -985,6 +985,7 @@ document.addEventListener('input',e=>{const el=e.target;if(el&&el.dataset&&el.da
 document.addEventListener('change',e=>{if(e.target.id==='iFile'&&e.target.files[0]){importFile(e.target.files[0]);e.target.value=''}});
 
 $('#hv').textContent='v'+APP_VERSION;
+$('#hv').onclick=()=>verificarAtualizacao();
 applyTheme(loadTheme());
 render();
 if(cur)keepAwake();

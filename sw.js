@@ -1,5 +1,5 @@
 /* Placar de Sinuca: rede primeiro (pega sempre a versão nova), cache só como reserva offline */
-const CACHE = "sinuca-v17";
+const CACHE = "sinuca-v18";
 const BASE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
