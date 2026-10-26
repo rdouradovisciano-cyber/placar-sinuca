@@ -179,6 +179,28 @@ input[readonly]{opacity:.7}
 .mact{display:flex;flex-direction:column;gap:6px}
 .ibtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--input);color:var(--txt);cursor:pointer;font-size:1rem}
 
+/* Calendário */
+.calhd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.calhd .t{font-weight:900;font-size:1.1rem;text-align:center;flex:1}
+.calhd button{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--input);color:var(--txt);font-size:1.3rem;font-weight:800;cursor:pointer}
+.calw{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;text-align:center;font-size:.68rem;color:var(--mut);font-weight:700}
+.calg{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cd{aspect-ratio:1/1.05;border-radius:12px;border:1px solid var(--line);background:var(--input);color:var(--txt);font-size:.95rem;font-weight:800;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:0;font-family:inherit}
+.cd.out{opacity:.3}
+.cd.play{border-color:rgba(230,185,77,.5)}
+.cd.today{box-shadow:0 0 0 2px var(--gold) inset}
+.cd.sel{background:var(--gold);color:#1a1203}
+.dts{display:flex;gap:3px;height:7px}
+.dts i{width:7px;height:7px;border-radius:50%;display:block}
+.dts i.a{background:var(--gold)}.dts i.v{background:var(--green)}.dts i.d{background:var(--red)}
+.cd.sel .dts i.a{background:#1a1203}
+.agi{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.agi:last-child{border:0}
+.agi .tm{flex:0 0 52px;font-weight:900;color:var(--gold);text-align:center;font-size:.95rem}
+.agi .in{flex:1;min-width:0}
+.agi .in b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.agi .in small{color:var(--mut)}
+.agb{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 /* Modal / toast */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:50;display:flex;align-items:flex-end;justify-content:center}
 @media(min-width:640px){.ov{align-items:center}}
@@ -235,7 +257,7 @@ body.live main{max-width:none;margin:0;padding:0}
 /* ======== Constantes e utilidades ======== */
 const MEU_NOME='Renato';
 const OPP_DEFAULT='Cabelo';
-const APP_VERSION='1.5.0';
+const APP_VERSION='1.6.0';
 const VER_URL='https://raw.githubusercontent.com/rdouradovisciano-cyber/placar-sinuca/main/version.json';
 const APK_URL='https://github.com/rdouradovisciano-cyber/placar-sinuca/releases/latest';
 const KEY_M='sinuca_partidas_v1', KEY_C='sinuca_atual_v1', KEY_B='sinuca_backup_v1', KEY_CB='sinuca_atual_backup_v1';
@@ -275,6 +297,97 @@ function pcRows(){
 }
 function refreshPCUI(){const b=$('#pcBox');if(b)b.innerHTML=pcRows()}
 
+/* ======== Calendário e agenda ======== */
+const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function agDoDia(d){return agenda.filter(a=>a.date===d).sort((x,y)=>(x.hora||'99').localeCompare(y.hora||'99'))}
+function gcalUrl(a){
+  const t=TIPOS[a.tipo]?TIPOS[a.tipo].nome:a.tipo;
+  let dates;
+  if(a.hora){
+    const [h,mi]=a.hora.split(':').map(Number),d=parseD(a.date);
+    const f=x=>ymd(x).replace(/-/g,'')+'T'+String(x.getHours()).padStart(2,'0')+String(x.getMinutes()).padStart(2,'0')+'00';
+    const ini=new Date(d.getFullYear(),d.getMonth(),d.getDate(),h,mi),fim=new Date(ini.getTime()+2*3600e3);
+    dates=f(ini)+'/'+f(fim);
+  }else{
+    const d=parseD(a.date),n=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1);
+    dates=a.date.replace(/-/g,'')+'/'+ymd(n).replace(/-/g,'');
+  }
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('Sinuca: '+MEU_NOME+' x '+a.opp)+'&dates='+dates+'&details='+encodeURIComponent(t+(a.nota?'\n'+a.nota:''));
+}
+function viewCal(){
+  const hj=hoje();if(!calSel)calSel=hj;
+  const prim=new Date(calY,calM,1),ini=new Date(calY,calM,1-prim.getDay());
+  let cel='';
+  for(let i=0;i<42;i++){
+    const d=new Date(ini.getFullYear(),ini.getMonth(),ini.getDate()+i),k=ymd(d);
+    const ag=agenda.filter(a=>a.date===k).length,ms=matches.filter(m=>m.date===k);
+    const v=ms.filter(m=>resultado(m)==='w').length,dd=ms.filter(m=>resultado(m)==='l').length;
+    const dots=(ag?'<i class="a"></i>':'')+(v?'<i class="v"></i>':'')+(dd?'<i class="d"></i>':'');
+    cel+=`<button class="cd ${d.getMonth()!==calM?'out':''} ${JOGO.includes(d.getDay())?'play':''} ${k===hj?'today':''} ${k===calSel?'sel':''}" data-calday="${k}">${d.getDate()}<span class="dts">${dots}</span></button>`;
+  }
+  const dia=calSel,ags=agDoDia(dia),jog=matches.filter(m=>m.date===dia).sort(sortDesc);
+  const prox=agenda.filter(a=>a.date>=hj).sort((x,y)=>x.date.localeCompare(y.date)||(x.hora||'').localeCompare(y.hora||'')).slice(0,5);
+  const item=a=>`<div class="agi"><div class="tm">${a.hora||'—'}</div><div class="in"><b>${esc(a.opp)}</b><small>${TIPOS[a.tipo]?TIPOS[a.tipo].nome:esc(a.tipo)} · meta ${a.meta||'-'}${a.nota?' · '+esc(a.nota):''}</small>
+      <div class="agb"><button class="btn gold sm" data-agstart="${a.id}">▶ Jogar agora</button><button class="btn ghost sm" data-agcal="${a.id}">📅 No calendário do celular</button><button class="btn ghost sm" data-agedit="${a.id}">✏️</button><button class="btn ghost sm" data-agdel="${a.id}">🗑️</button></div></div></div>`;
+  return `<h2>Calendário</h2>
+  <div class="card">
+    <div class="calhd"><button data-calnav="-1" aria-label="Mês anterior">‹</button><div class="t">${MESES[calM]} ${calY}</div><button data-calnav="1" aria-label="Próximo mês">›</button></div>
+    <div class="calw">${DIAS_C.map(x=>`<div>${x}</div>`).join('')}</div>
+    <div class="calg">${cel}</div>
+    <div class="hint" style="text-align:center;margin-top:10px"><span style="color:var(--gold)">●</span> agendada &nbsp; <span style="color:var(--green)">●</span> vitória &nbsp; <span style="color:var(--red)">●</span> derrota &nbsp; · borda dourada = dia de treino</div>
+    <div class="row" style="margin-top:10px"><button class="btn ghost sm" data-calnav="0">Hoje</button></div>
+  </div>
+  <h3>${fmtD(dia)} · ${DIAS[dow(dia)]} ${JOGO.includes(dow(dia))?'(dia de jogo)':'(folga)'}</h3>
+  <div class="card">
+    ${ags.length?ags.map(item).join(''):'<div class="hint" style="margin:0 0 6px">Nenhuma partida agendada neste dia.</div>'}
+    ${jog.length?`<div class="hint" style="margin:10px 0 0">Jogadas neste dia:</div>`+jog.map(itemHist).join(''):''}
+    <button class="btn gold block" data-agnew="${dia}" style="margin-top:12px">＋ Agendar partida neste dia</button>
+  </div>
+  ${prox.length?`<h3>Próximas partidas</h3><div class="card">${prox.map(a=>`<div class="agi clickable" data-calday="${a.date}" style="cursor:pointer"><div class="tm">${fmtD(a.date).slice(0,5)}</div><div class="in"><b>${esc(a.opp)}</b><small>${DIAS_C[dow(a.date)]}${a.hora?' · '+a.hora:''} · ${TIPOS[a.tipo]?TIPOS[a.tipo].nome:esc(a.tipo)}</small></div></div>`).join('')}</div>`:''}`;
+}
+function openAg(id,dia){
+  const novo=id==='new';
+  const a=novo?{id:uid(),date:dia||hoje(),hora:'',opp:OPP_DEFAULT,tipo:'3bolas',meta:8,nota:''}:agenda.find(x=>x.id===id);
+  if(!a)return;
+  const ops=oponentes();
+  $('#modalRoot').innerHTML=`<div class="ov" id="ov"><div class="modal">
+    <h2>${novo?'Agendar partida':'Editar agendamento'}</h2>
+    <div class="grid g2">
+      <div class="field"><label>Data</label><input type="date" id="aDate" value="${a.date}"></div>
+      <div class="field"><label>Hora (opcional)</label><input type="time" id="aHora" value="${a.hora||''}"></div>
+    </div>
+    <div class="field"><label>Adversário</label><input id="aOpp" list="aList" value="${esc(a.opp)}" placeholder="Nome do adversário"><datalist id="aList">${ops.map(o=>`<option value="${esc(o[1])}">`).join('')}</datalist></div>
+    <div class="grid g2">
+      <div class="field"><label>Tipo de jogo</label><select id="aTipo">${Object.entries(TIPOS).map(([k,v])=>`<option value="${k}" ${a.tipo===k?'selected':''}>${v.nome}</option>`).join('')}</select></div>
+      <div class="field"><label>Pontos por set</label><input id="aMeta" type="number" min="1" inputmode="numeric" value="${a.meta||TIPOS[a.tipo].meta}"></div>
+    </div>
+    <div class="field"><label>Observação (opcional)</label><input id="aNota" value="${esc(a.nota||'')}" placeholder="Ex.: valendo uma rodada"></div>
+    <div class="row"><button class="btn ghost" id="aCancel" style="flex:1">Cancelar</button><button class="btn gold" id="aSave" style="flex:2">Salvar</button></div>
+  </div></div>`;
+  $('#aTipo').onchange=e=>{$('#aMeta').value=TIPOS[e.target.value].meta};
+  const close=()=>$('#modalRoot').innerHTML='';
+  $('#aCancel').onclick=close;
+  $('#ov').onclick=e=>{if(e.target.id==='ov')close()};
+  $('#aSave').onclick=()=>{
+    const d=$('#aDate').value;if(!d){toast('Informe a data');return}
+    const rec=Object.assign({},a,{date:d,hora:$('#aHora').value||'',opp:$('#aOpp').value.trim()||'Adversário',tipo:$('#aTipo').value,meta:Math.max(1,+$('#aMeta').value||1),nota:$('#aNota').value.trim()});
+    if(novo)agenda.push(rec);else agenda=agenda.map(x=>x.id===rec.id?rec:x);
+    saveA();close();calSel=d;const dt=parseD(d);calY=dt.getFullYear();calM=dt.getMonth();
+    tab='cal';render();toast('Partida agendada');
+  };
+}
+function startAg(id){
+  const a=agenda.find(x=>x.id===id);if(!a)return;
+  if(cur&&(cur.me||cur.op||cur.setsMe||cur.setsOp)&&!confirm('Há uma partida em andamento ('+cur.setsMe+'×'+cur.setsOp+', set '+cur.me+'×'+cur.op+').\n\nSubstituir pela partida agendada contra '+a.opp+'? A atual será perdida (use "Salvar no histórico" antes, se quiser guardá-la).'))return;
+  cur=Object.assign(defaultCur(),{opp:a.opp,tipo:a.tipo,meta:Math.max(1,+a.meta||TIPOS[a.tipo].meta),date:hoje()});
+  agenda=agenda.filter(x=>x.id!==id);saveA();saveC();tab='play';render();toast('Partida contra '+a.opp+' iniciada');
+}
+function delAg(id){
+  const a=agenda.find(x=>x.id===id);if(!a)return;
+  if(confirm('Apagar o agendamento de '+fmtD(a.date)+' contra '+a.opp+'?')){agenda=agenda.filter(x=>x.id!==id);saveA();render();toast('Agendamento apagado')}
+}
+
 /* ======== Tema / cores ======== */
 const KEY_T='sinuca_tema_v1';
 function hexToRgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return [(n>>16)&255,(n>>8)&255,n&255]}
@@ -310,6 +423,11 @@ let matches=load(KEY_M,[]);
 if(!matches.length){const b=load(KEY_B,[]);if(Array.isArray(b)&&b.length){matches=b;save(KEY_M,matches);toast('Backup restaurado automaticamente')}}
 let cur=load(KEY_C,null);if(!cur){const cb=load(KEY_CB,null);if(cb){cur=cb;save(KEY_C,cur)}}
 let tab='play';
+const KEY_A='sinuca_agenda_v1';
+let agenda=load(KEY_A,[]);if(!Array.isArray(agenda))agenda=[];
+function saveA(){save(KEY_A,agenda)}
+const _hj=new Date();
+let calY=_hj.getFullYear(),calM=_hj.getMonth(),calSel=null;
 let setup={opp:'Cabelo',tipo:'3bolas',meta:8,setsToWin:0,date:hoje()};
 let F={tipo:'all',opp:'all',per:'all'};
 let wake=null;
@@ -357,7 +475,7 @@ function oponentes(){
 
 /* ======== Navegação ======== */
 function renderNav(){
-  const items=[['play','🎱','Placar'],['stats','📊','Relatórios'],['hist','📋','Histórico'],['data','💾','Backup']];
+  const items=[['play','🎱','Placar'],['stats','📊','Relatórios'],['cal','📅','Calendário'],['hist','📋','Histórico'],['data','💾','Backup']];
   $('#nav').innerHTML=items.map(([k,i,t])=>`<button class="${tab===k?'act':''}" data-tab="${k}"><span class="ic">${i}</span>${t}</button>`).join('');
   $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render()});
   const t=hoje();$('#today').innerHTML=fmtD(t)+'<br>'+pillDia(t);
@@ -369,6 +487,7 @@ function render(){
   const a=$('#app');
   if(tab==='play')a.innerHTML=cur?viewLive():viewSetup();
   else if(tab==='stats')a.innerHTML=viewStats();
+  else if(tab==='cal')a.innerHTML=viewCal();
   else if(tab==='hist')a.innerHTML=viewHist();
   else a.innerHTML=viewData();
   if(tab==='play'&&!cur)bindSetup();
@@ -454,7 +573,8 @@ function openMenu(){
       <button class="btn ghost" id="mUndo" ${c.undo.length?'':'disabled style="opacity:.4"'}>↶ Desfazer</button>
       <button class="btn ghost" id="mZero">⟲ Zerar set</button>
     </div>
-    <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">
+    <div class="grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:12px">
+      <button class="btn ghost sm" data-go="cal">📅 Calendário</button>
       <button class="btn ghost sm" data-go="stats">📊 Relatórios</button>
       <button class="btn ghost sm" data-go="hist">📋 Histórico</button>
       <button class="btn ghost sm" data-go="data">💾 Backup</button>
@@ -707,7 +827,7 @@ function download(name,text,type){
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
 }
 function exportJSON(){
-  download('sinuca-backup-'+hoje()+'.json',JSON.stringify({app:'placar-sinuca',versao:1,exportadoEm:new Date().toISOString(),matches},null,2),'application/json');
+  download('sinuca-backup-'+hoje()+'.json',JSON.stringify({app:'placar-sinuca',versao:1,exportadoEm:new Date().toISOString(),matches,agenda},null,2),'application/json');
   toast('Backup JSON gerado');
 }
 function exportCSV(){
@@ -731,7 +851,17 @@ function importFile(file){
           setsMe:Math.max(0,+x.setsMe||0),setsOp:Math.max(0,+x.setsOp||0),sets:Array.isArray(x.sets)?x.sets:[],createdAt:+x.createdAt||Date.now()};
         if(ids.has(rec.id))return;ids.add(rec.id);matches.push(rec);add++;
       });
-      saveM();toast(add+' partida(s) importada(s)');render();
+      let addA=0;
+      if(!Array.isArray(j)&&Array.isArray(j.agenda)){
+        const aids=new Set(agenda.map(a=>a.id));
+        j.agenda.forEach(x=>{
+          if(!x||!/^\d{4}-\d{2}-\d{2}$/.test(x.date||''))return;
+          const rec={id:String(x.id||uid()),date:x.date,hora:/^\d{2}:\d{2}$/.test(x.hora||'')?x.hora:'',opp:String(x.opp||'Adversário'),tipo:TIPOS[x.tipo]?x.tipo:'livre',meta:+x.meta||0,nota:String(x.nota||'')};
+          if(aids.has(rec.id))return;aids.add(rec.id);agenda.push(rec);addA++;
+        });
+        saveA();
+      }
+      saveM();toast(add+' partida(s)'+(addA?' e '+addA+' agendamento(s)':'')+' importada(s)');render();
     }catch(e){toast('Arquivo inválido')}
   };
   rd.readAsText(file);
@@ -791,7 +921,14 @@ document.addEventListener('contextmenu',e=>{if(e.target.closest('[data-oppname]'
 /* ======== Eventos globais ======== */
 document.addEventListener('click',e=>{
   if(oppLongFired){oppLongFired=false;e.stopPropagation();e.preventDefault();return}
-  const t=e.target.closest('button,[data-opp],[data-act],[data-go]');if(!t)return;
+  const t=e.target.closest('button,[data-opp],[data-act],[data-go],[data-calday]');if(!t)return;
+  if(t.dataset.calday){calSel=t.dataset.calday;const d=parseD(calSel);calY=d.getFullYear();calM=d.getMonth();render();return}
+  if(t.dataset.calnav!==undefined){const n=+t.dataset.calnav;if(n===0){const h=new Date();calY=h.getFullYear();calM=h.getMonth();calSel=hoje()}else{const d=new Date(calY,calM+n,1);calY=d.getFullYear();calM=d.getMonth()}render();return}
+  if(t.dataset.agnew){openAg('new',t.dataset.agnew);return}
+  if(t.dataset.agedit){openAg(t.dataset.agedit);return}
+  if(t.dataset.agdel){delAg(t.dataset.agdel);return}
+  if(t.dataset.agstart){startAg(t.dataset.agstart);return}
+  if(t.dataset.agcal){const a=agenda.find(x=>x.id===t.dataset.agcal);if(a)window.open(gcalUrl(a),'_blank');return}
   if(t.dataset.pcor){const [w,h]=t.dataset.pcor.split('|');setPC(w,h);return}
   if(t.dataset.act){act(t.dataset.act,t.dataset.who);return}
   if(t.dataset.mact){act(t.dataset.mact,t.dataset.who);openMenu();return}
