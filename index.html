@@ -35,6 +35,7 @@ header{
 }
 .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px}
 .ball{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#2a2a2a 0 12%,#000 13% 100%);box-shadow:0 2px 6px #0008;position:relative;overflow:hidden}
+.ballimg{width:26px;height:26px;border-radius:50%;box-shadow:0 2px 6px #0008}
 .ball::before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:62%;height:62%;border-radius:50%;background:#fff}
 .ball::after{content:"8";position:absolute;inset:0;display:grid;place-items:center;font-size:.8rem;font-weight:900;color:#000;font-family:system-ui,sans-serif}
 .logo span{font-size:1.05rem}
@@ -219,7 +220,7 @@ body.live main{max-width:none;margin:0;padding:0}
 </head>
 <body>
 <header>
-  <div class="logo"><div class="ball"></div><span>Placar de Sinuca <small id="hv" style="font-weight:600;color:var(--mut);font-size:.65rem"></small></span></div>
+  <div class="logo"><img class="ballimg" src="icon.svg" alt="Bola 8"><span>Placar de Sinuca <small id="hv" style="font-weight:600;color:var(--mut);font-size:.65rem"></small></span></div>
   <div class="today" id="today"></div>
 </header>
 <main id="app"></main>
@@ -234,10 +235,10 @@ body.live main{max-width:none;margin:0;padding:0}
 /* ======== Constantes e utilidades ======== */
 const MEU_NOME='Renato';
 const OPP_DEFAULT='Cabelo';
-const APP_VERSION='1.4.0';
+const APP_VERSION='1.4.1';
 const VER_URL='https://raw.githubusercontent.com/rdouradovisciano-cyber/placar-sinuca/main/version.json';
 const APK_URL='https://github.com/rdouradovisciano-cyber/placar-sinuca/releases/latest';
-const KEY_M='sinuca_partidas_v1', KEY_C='sinuca_atual_v1';
+const KEY_M='sinuca_partidas_v1', KEY_C='sinuca_atual_v1', KEY_B='sinuca_backup_v1', KEY_CB='sinuca_atual_backup_v1';
 const DIAS=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 const DIAS_C=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const JOGO=[2,3,5,6]; // Terça, Quarta, Sexta, Sábado
@@ -290,15 +291,16 @@ function themeFromColors(felt,accent){
 
 /* ======== Estado ======== */
 let matches=load(KEY_M,[]);
-let cur=load(KEY_C,null);
+if(!matches.length){const b=load(KEY_B,[]);if(Array.isArray(b)&&b.length){matches=b;save(KEY_M,matches);toast('Backup restaurado automaticamente')}}
+let cur=load(KEY_C,null);if(!cur){const cb=load(KEY_CB,null);if(cb){cur=cb;save(KEY_C,cur)}}
 let tab='play';
 let setup={opp:'Cabelo',tipo:'3bolas',meta:8,setsToWin:0,date:hoje()};
 let F={tipo:'all',opp:'all',per:'all'};
 let wake=null;
 let bump=null;
 
-function saveM(){save(KEY_M,matches)}
-function saveC(){save(KEY_C,cur)}
+function saveM(){save(KEY_M,matches);save(KEY_B,matches)}
+function saveC(){save(KEY_C,cur);save(KEY_CB,cur)}
 function defaultCur(){return {id:uid(),opp:OPP_DEFAULT,tipo:'3bolas',meta:8,setsToWin:0,date:hoje(),me:0,op:0,setsMe:0,setsOp:0,log:[],undo:[],createdAt:Date.now()}}
 function ensureCur(){if(!cur){cur=defaultCur();saveC()}}
 
@@ -670,6 +672,7 @@ function viewData(){
     <button class="btn ghost block" id="xUpd">🔄 Verificar atualização</button>
     <div class="hint" id="updMsg">Se o app parecer desatualizado, toque aqui. Suas partidas não são apagadas.</div>
     <h3>Zona de risco</h3>
+    <button class="btn ghost block" id="xRestore" style="margin-bottom:10px">Restaurar backup automatico</button>
     <button class="btn red block" id="xAll">Apagar todas as partidas</button>
   </div>`;
 }
@@ -793,6 +796,7 @@ document.addEventListener('click',e=>{
     case 'xUpd':verificarAtualizacao();break;
     case 'xJson':exportJSON();break;
     case 'xCsv':exportCSV();break;
+    case 'xRestore':{const b=load(KEY_B,[]);const cb=load(KEY_CB,null);if((!Array.isArray(b)||!b.length)&&!cb){toast('Nenhum backup encontrado');break}if(!confirm('Restaurar o backup automatico? Isso substitui os dados atuais.'))break;if(Array.isArray(b)&&b.length){matches=b;saveM()}if(cb){cur=cb;saveC()}toast('Backup restaurado');render();break;}
     case 'xAll':if(matches.length&&confirm('Apagar TODAS as '+matches.length+' partidas? Isso não pode ser desfeito.')&&confirm('Tem certeza? Exporte um backup antes se precisar.')){matches=[];saveM();toast('Dados apagados');render()}break;
   }
 });
