@@ -58,20 +58,28 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
+          # a chave de debug é a do repositório: assim a versão nova instala por cima
+          # da anterior sem desinstalar (e sem perder o histórico salvo no aparelho)
           mkdir -p ~/.android
           cp signing/debug.keystore ~/.android/debug.keystore
-          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PASS" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASS" ]; then
-            echo "Faltam segredos de assinatura: usando a chave debug (instala por cima, mas não serve para a Play Store)."
-            echo "task=assembleDebug" >> "$GITHUB_OUTPUT"
-            echo "apk=android/app/build/outputs/apk/debug/app-debug.apk" >> "$GITHUB_OUTPUT"
-            exit 0
+          cp signing/debug.keystore android/app/debug.keystore
+          RELEASE=0
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$KEYSTORE_PASS" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASS" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > android/app/release.keystore
+            RELEASE=1
+          else
+            echo "Sem os 4 segredos de assinatura: usando a chave de debug do repositório."
           fi
-          echo "$KEYSTORE_B64" | base64 -d > android/app/release.keystore
-          if python3 .github/scripts/release-signing.py; then
+          if ! python3 .github/scripts/signing-setup.py; then
+            echo "Não consegui configurar a assinatura; voltando para debug."
+            rm -f android/app/release.keystore
+            python3 .github/scripts/signing-setup.py || exit 1
+            RELEASE=0
+          fi
+          if [ "$RELEASE" = "1" ]; then
             echo "task=assembleRelease" >> "$GITHUB_OUTPUT"
             echo "apk=android/app/build/outputs/apk/release/app-release.apk" >> "$GITHUB_OUTPUT"
           else
-            echo "Não consegui configurar a assinatura release; caindo para debug."
             echo "task=assembleDebug" >> "$GITHUB_OUTPUT"
             echo "apk=android/app/build/outputs/apk/debug/app-debug.apk" >> "$GITHUB_OUTPUT"
           fi

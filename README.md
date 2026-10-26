@@ -73,8 +73,14 @@ página da release para baixar o APK.
 
 ### Assinatura
 
-Sem configuração extra o APK sai assinado com a chave de debug (`signing/debug.keystore`),
-que serve para instalar por cima da versão anterior, mas **não** serve para a Play Store.
+Sem configuração extra o APK sai assinado com a chave de debug **do próprio repositório**
+(`signing/debug.keystore`), o que faz a versão nova instalar por cima da anterior sem
+desinstalar — e sem perder o histórico salvo no aparelho. Essa chave **não** serve para a
+Play Store.
+
+Se você já tinha instalado um APK gerado antes dessa chave fixa, vai precisar desinstalar
+**uma vez** (exporte o JSON antes, em Backup, e importe depois). Dali em diante as
+atualizações entram por cima.
 
 Para assinar de verdade, cadastre os segredos do repositório:
 
