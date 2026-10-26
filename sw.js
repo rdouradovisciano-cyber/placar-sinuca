@@ -1,5 +1,5 @@
 /* Placar de Sinuca: rede primeiro (pega sempre a versão nova), cache só como reserva offline */
-const CACHE = "sinuca-v22";
+const CACHE = "sinuca-v23";
 const BASE = [
   "./", "./index.html", "./styles.css", "./core.js", "./app.js",
   "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png",

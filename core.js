@@ -15,7 +15,23 @@
   }
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  // id único: relógio + contador da sessão + 7 dígitos aleatórios.
+  // O contador é o que garante unicidade quando vários ids saem no mesmo
+  // milissegundo (era onde dois sets podiam receber o mesmo id).
+  let uidSeq = 0;
+  const uid = () => {
+    uidSeq = (uidSeq + 1) % 1679616; // 36^4
+    let r = '';
+    try {
+      if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        const b = new Uint32Array(1);
+        crypto.getRandomValues(b);
+        r = b[0].toString(36).padStart(7, '0').slice(0, 7);
+      }
+    } catch (e) {}
+    if (!r) r = Math.random().toString(36).slice(2).padEnd(7, '0').slice(0, 7);
+    return Date.now().toString(36) + '-' + uidSeq.toString(36).padStart(4, '0') + '-' + r;
+  };
 
   function sortDesc(a, b) { return (String(b.date).localeCompare(String(a.date))) || ((b.createdAt || 0) - (a.createdAt || 0)); }
 

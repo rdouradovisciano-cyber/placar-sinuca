@@ -157,7 +157,11 @@ test('cores: mixHex, darken e lighten', () => {
   assert.equal(C.rgbToHex(255, 0, 0), '#ff0000');
 });
 
-test('uid gera ids diferentes', () => {
-  const ids = new Set(Array.from({ length: 200 }, () => C.uid()));
-  assert.equal(ids.size, 200);
+test('uid gera ids diferentes mesmo criando muitos no mesmo milissegundo', () => {
+  // 5000 ids de uma vez: antes, o pedaço aleatório podia sair curto e repetir
+  const ids = new Set(Array.from({ length: 5000 }, () => C.uid()));
+  assert.equal(ids.size, 5000);
+  // e continua único entre chamadas separadas
+  const outros = new Set(Array.from({ length: 500 }, () => C.uid()));
+  for (const id of outros) assert.ok(!ids.has(id));
 });
