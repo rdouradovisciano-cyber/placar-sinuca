@@ -32,6 +32,8 @@ Sem build: é só abrir `index.html` ou publicar a pasta em qualquer host estát
 A ordem dos scripts importa: `core.js` antes de `app.js`.
 
 ## Desenvolvimento
+Veja o `AGENTS.md` para a estrutura do projeto, regras e checklist de mudanças (versão, cache do service worker).
+
 
 ```bash
 npm install

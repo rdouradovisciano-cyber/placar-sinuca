@@ -1,39 +1,44 @@
 # Placar de Sinuca — guia para agentes (OpenCode, Claude Code etc.)
 
-App de placar e relatórios de sinuca/bilhar do Renato. **Idioma: português do Brasil** (textos da interface, commits e respostas).
+App pessoal de placar e histórico de sinuca/bilhar do Renato. Idioma da interface e dos textos: **português do Brasil**.
 
-## Arquitetura
-- **Um único arquivo**: `index.html` com HTML, CSS e JavaScript embutidos. Sem build, sem framework, sem dependências no navegador.
-- PWA: `manifest.webmanifest`, `sw.js` (rede primeiro, cache só como reserva offline), ícones `icon-*.png` e `icon.svg`.
-- Dados 100% no `localStorage` do navegador (sem backend). Chaves:
-  - `sinuca_partidas_v1` partidas · `sinuca_atual_v1` placar em andamento · `sinuca_backup_v1` / `sinuca_atual_backup_v1` cópias automáticas
-  - `sinuca_placares_v1` placar e horário de cada set · `sinuca_agenda_v1` agendamentos
-  - `sinuca_tema_v2` tema · `sinuca_cores_jog_v1` cores dos jogadores · `sinuca_contagem_v1` contar por partida/set
-- APK Android: Capacitor (`capacitor.config.json`, `package.json`). O APK é só uma janela para o site publicado (`server.url`), então atualizar o site atualiza o app.
-- Publicação: GitHub Pages (`https://rdouradovisciano-cyber.github.io/placar-sinuca/`) a partir da raiz da branch `main`. O workflow `.github/workflows/apk.yml` compila o APK a cada push e publica em Releases. A chave de assinatura fixa está em `signing/debug.keystore` (necessária para o APK instalar por cima do anterior).
+## Visão geral
+- **Um único arquivo** `index.html` com HTML, CSS e JavaScript (sem framework, sem build). Tudo roda no navegador.
+- Dados só em `localStorage` (sem backend). Chaves principais:
+  `sinuca_partidas_v1` (partidas), `sinuca_atual_v1` (placar em andamento), `sinuca_placares_v1` (cada set fechado, com horário),
+  `sinuca_agenda_v1` (agendamentos), `sinuca_cores_jog_v1` (cores dos jogadores), `sinuca_tema_v2` (tema), `sinuca_contagem_v1` (contar por partida/set),
+  mais cópias automáticas `sinuca_backup_v1` e `sinuca_atual_backup_v1`.
+- PWA: `manifest.webmanifest` + `sw.js` (rede primeiro, cache só como reserva offline).
+- Publicado no **GitHub Pages**: https://rdouradovisciano-cyber.github.io/placar-sinuca/
+- APK Android via **Capacitor** (`capacitor.config.json`, `package.json`), compilado pelo GitHub Actions (`.github/workflows/apk.yml`).
+  O APK carrega o site publicado (`server.url`), então atualizar o site atualiza o app sem reinstalar. A assinatura fixa está em `signing/debug.keystore`.
 
-## Regras de negócio
-- Jogador "eu" = constante `MEU_NOME` ("Renato"). Adversário padrão: `OPP_DEFAULT`.
-- Tipos de jogo em `TIPOS`: 3 Bolas (set fecha com 8 pontos), 5 Bolas (15), Livre (personalizado).
-- Ao atingir a meta, o set fecha: zera os pontos, soma +1 set, registra em `cur.log` e em `placares` (com horário). Desfazer remove o placar do set.
+## Regras do jogo (não mudar sem pedir)
+- **3 Bolas:** 1 ponto por bola; quem chega a **8** fecha o set, a pontuação zera e soma +1 set.
+- **5 Bolas** (meta padrão 15) e **Livre** (meta padrão 10) têm meta configurável.
+- O placar `Eu × adversário` é sempre do ponto de vista do Renato (constante `MEU_NOME`). O adversário padrão é `OPP_DEFAULT`.
 - Dias de treino: terça, quarta, sexta e sábado (`JOGO=[2,3,5,6]`).
-- Relatórios podem contar por partida ou por set (`modoSets`).
 
-## Interface
-- Tela do placar: tela cheia dividida (adversário em cima, eu embaixo), toque no cartão soma +1, botão redondo "−" tira 1, botões redondos ↶ e ⋯ nos cantos. Segurar o nome abre cor (e nome do adversário).
-- Demais telas: tema claro e limpo (variáveis CSS em `:root`; temas em `PRESETS`). Barra de baixo: Placar, Histórico, Backup.
-- Não usar cores fixas no CSS fora das variáveis, exceto na tela do placar.
+## Telas
+- **Placar** (tela cheia dividida, adversário em cima/azul, Renato embaixo/vermelho): tocar na metade soma +1, botão redondo "−" tira 1, ↶ desfaz, ⋯ abre o menu. **Segurar o nome** abre a folha de cor (e do nome, no adversário).
+- **Histórico:** abas *Sets* (cada set fechado com placar e horário) e *Partidas* (resultado final), com filtros, editar, apagar e registrar manualmente.
+- **Backup:** exportar/importar JSON, CSV, tema, restaurar backup automático, verificar atualização, zerar tudo.
+- **Relatórios** e **Calendário** existem no código, mas o acesso foi retirado da barra de baixo a pedido do usuário (Relatórios ainda abre pelo menu ⋯).
 
-## Ao fazer uma mudança
-1. Edite `index.html`.
-2. **Suba a versão** em três lugares: `APP_VERSION` em `index.html`, `version.json` e o nome do cache `CACHE` em `sw.js`.
-3. Valide a sintaxe do script:
-   `sed -n '/<script>/,/<\/script>/p' index.html | sed '1d;$d' > /tmp/chk.js && node --check /tmp/chk.js`
-4. Teste no navegador (Playwright/Chromium funciona com `file://`), principalmente: somar pontos até fechar um set, desfazer, histórico, backup.
-5. Faça commit e push na `main`. Não crie dependências nem etapa de build.
+## Estilo visual
+Tema **claro e limpo** por padrão (cartões brancos, destaque verde-azulado). Todas as cores vêm de variáveis CSS (`--bg`, `--panel`, `--gold` = cor de destaque, `--onacc`, `--txt`, `--mut`...), definidas por `applyTheme`. Use variáveis, nunca cores fixas, para os temas continuarem funcionando. A tela do placar é a exceção: fundo preto e cores dos jogadores.
+
+## Como testar
+- Sintaxe do JS: extraia o conteúdo da tag `<script>` principal e rode `node --check`.
+- Teste de interface: Playwright (Chromium) abrindo `index.html` via `file://`, com viewport de celular (ex. 420×900). Durante a partida a barra de baixo fica escondida; navegue pelo menu ⋯.
+
+## Ao fazer qualquer mudança (obrigatório)
+1. Aumente `APP_VERSION` em `index.html`.
+2. Atualize `version.json` (`versao` e `nota`) com o mesmo número. O botão "Verificar atualização" compara os dois.
+3. Troque o nome do cache em `sw.js` (`const CACHE = "sinuca-vNN"`), senão o celular pode manter arquivos antigos.
+4. Faça commit em `main`. O push dispara o GitHub Pages e o fluxo que gera o APK em Releases.
 
 ## Cuidados
-- **Nunca apague ou migre dados do usuário sem confirmação**. O histórico dele já foi perdido uma vez ao trocar de origem do app.
-- Ao mudar o formato dos dados, mantenha leitura compatível com o antigo e inclua o novo campo na exportação/importação de backup (JSON).
-- Funções com `confirm()` são usadas de propósito (funcionam no WebView do Capacitor).
-- Texto de interface sempre em português, com acentuação correta.
+- **Nunca apague dados do usuário** sem confirmação dupla; o histórico só existe no aparelho. Mudanças de formato precisam ser compatíveis com backups JSON antigos (veja `importFile`).
+- Não troque `appId` (`com.sinuca.placar`) nem a chave de assinatura: o Android deixaria de instalar por cima.
+- Mantenha tudo em um único `index.html` e sem dependências externas, para funcionar offline.
