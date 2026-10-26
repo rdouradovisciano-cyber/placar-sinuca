@@ -211,7 +211,7 @@ body.live main{max-width:none;margin:0;padding:0}
 /* ======== Constantes e utilidades ======== */
 const MEU_NOME='Renato';
 const OPP_DEFAULT='Cabelo';
-const APP_VERSION='2.2.0';
+const APP_VERSION='2.2.1';
 const VER_URL='https://raw.githubusercontent.com/rdouradovisciano-cyber/placar-sinuca/main/version.json';
 const APK_URL='https://github.com/rdouradovisciano-cyber/placar-sinuca/releases/latest';
 const KEY_M='sinuca_partidas_v1', KEY_C='sinuca_atual_v1', KEY_B='sinuca_backup_v1', KEY_CB='sinuca_atual_backup_v1';
@@ -441,8 +441,6 @@ function renderNav(){
   const I=d=>`<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
   const items=[
     ['play',I('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.4"/>'),'Placar'],
-    ['stats',I('<path d="M5 20V11M12 20V4M19 20v-6"/>'),'Relatórios'],
-    ['cal',I('<rect x="3.5" y="5" width="17" height="15.5" rx="3.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'),'Calendário'],
     ['hist',I('<path d="M8.5 6.5H20M8.5 12H20M8.5 17.5H20"/><circle cx="4.5" cy="6.5" r=".6"/><circle cx="4.5" cy="12" r=".6"/><circle cx="4.5" cy="17.5" r=".6"/>'),'Histórico'],
     ['data',I('<path d="M12 4v11m0 0-4-4m4 4 4-4M5 19.5h14"/>'),'Backup']];
   $('#nav').innerHTML=items.map(([k,i,t])=>`<button class="${tab===k?'act':''}" data-tab="${k}"><span class="ic">${i}</span>${t}</button>`).join('');
