@@ -257,7 +257,7 @@ body.live main{max-width:none;margin:0;padding:0}
 /* ======== Constantes e utilidades ======== */
 const MEU_NOME='Renato';
 const OPP_DEFAULT='Cabelo';
-const APP_VERSION='1.7.0';
+const APP_VERSION='1.7.1';
 const VER_URL='https://raw.githubusercontent.com/rdouradovisciano-cyber/placar-sinuca/main/version.json';
 const APK_URL='https://github.com/rdouradovisciano-cyber/placar-sinuca/releases/latest';
 const KEY_M='sinuca_partidas_v1', KEY_C='sinuca_atual_v1', KEY_B='sinuca_backup_v1', KEY_CB='sinuca_atual_backup_v1';
@@ -825,7 +825,7 @@ function viewData(){
     <div class="hint" id="updMsg">Se o app parecer desatualizado, toque aqui. Suas partidas não são apagadas.</div>
     <h3>Zona de risco</h3>
     <button class="btn ghost block" id="xRestore" style="margin-bottom:10px">Restaurar backup automatico</button>
-    <button class="btn red block" id="xAll">Apagar todas as partidas</button>
+    <button class="btn red block" id="xAll">Zerar tudo (histórico, agenda e placar)</button>
   </div>`;
 }
 function download(name,text,type){
@@ -968,7 +968,7 @@ document.addEventListener('click',e=>{
     case 'xJson':exportJSON();break;
     case 'xCsv':exportCSV();break;
     case 'xRestore':{const b=load(KEY_B,[]);const cb=load(KEY_CB,null);if((!Array.isArray(b)||!b.length)&&!cb){toast('Nenhum backup encontrado');break}if(!confirm('Restaurar o backup automatico? Isso substitui os dados atuais.'))break;if(Array.isArray(b)&&b.length){matches=b;saveM()}if(cb){cur=cb;saveC()}toast('Backup restaurado');render();break;}
-    case 'xAll':if(matches.length&&confirm('Apagar TODAS as '+matches.length+' partidas? Isso não pode ser desfeito.')&&confirm('Tem certeza? Exporte um backup antes se precisar.')){matches=[];saveM();toast('Dados apagados');render()}break;
+    case 'xAll':if(confirm('ZERAR TUDO?\n\nIsso apaga o histórico ('+matches.length+' partida(s)), a agenda e o placar atual. Não pode ser desfeito.\n\nExporte um backup antes, se quiser guardar.')&&confirm('Tem certeza? Tudo será apagado agora.')){matches=[];agenda=[];saveM();saveA();cur=defaultCur();saveC();try{localStorage.removeItem(KEY_B);localStorage.removeItem(KEY_CB);saveM();saveC()}catch(e){}toast('Tudo zerado. Boa sorte na terça!');render()}break;
   }
 });
 document.addEventListener('input',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.pcolor)setPC(el.dataset.pcolor,el.value,true)});
