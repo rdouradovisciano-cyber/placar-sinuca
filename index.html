@@ -257,7 +257,7 @@ body.live main{max-width:none;margin:0;padding:0}
 /* ======== Constantes e utilidades ======== */
 const MEU_NOME='Renato';
 const OPP_DEFAULT='Cabelo';
-const APP_VERSION='1.6.0';
+const APP_VERSION='1.6.1';
 const VER_URL='https://raw.githubusercontent.com/rdouradovisciano-cyber/placar-sinuca/main/version.json';
 const APK_URL='https://github.com/rdouradovisciano-cyber/placar-sinuca/releases/latest';
 const KEY_M='sinuca_partidas_v1', KEY_C='sinuca_atual_v1', KEY_B='sinuca_backup_v1', KEY_CB='sinuca_atual_backup_v1';
@@ -740,9 +740,10 @@ function viewHist(){
 }
 
 /* ======== Editar / registrar ======== */
-function openEdit(id){
+function openEdit(id,pre){
   const isNew=id==='new';
   const m=isNew?{id:uid(),date:hoje(),opp:'',tipo:'3bolas',meta:8,setsMe:0,setsOp:0,sets:[],createdAt:Date.now()}:matches.find(x=>x.id===id);
+  if(isNew&&pre)Object.assign(m,pre);
   if(!m)return;
   const ops=oponentes();
   $('#modalRoot').innerHTML=`<div class="ov" id="ov"><div class="modal">
@@ -756,13 +757,14 @@ function openEdit(id){
       <div class="field"><label>Sets do adversário</label><input id="eOp" type="number" min="0" inputmode="numeric" value="${m.setsOp}"></div>
     </div>
     <div class="row" style="margin-top:6px"><button class="btn ghost" id="eCancel" style="flex:1">Cancelar</button><button class="btn gold" id="eSave" style="flex:2">Salvar</button></div>
+    ${isNew?'<button class="btn ghost block" id="eSaveMore" style="margin-top:10px">＋ Salvar e adicionar outra</button><div class="hint" style="text-align:center">Mantém data, adversário e tipo para o próximo registro.</div>':''}
   </div></div>`;
   $('#eDate').onchange=e=>{if(e.target.value)m.date=e.target.value;};
   $('#eTipo').onchange=e=>{$('#eMeta').value=TIPOS[e.target.value].meta};
   const close=()=>$('#modalRoot').innerHTML='';
   $('#eCancel').onclick=close;
   $('#ov').onclick=e=>{if(e.target.id==='ov')close()};
-  $('#eSave').onclick=()=>{
+  const salvar=(mais)=>{
     const d=$('#eDate').value;if(!d){toast('Informe a data');return}
     const rec=Object.assign({},m,{
       date:d,opp:($('#eOpp').value.trim()||'Adversário'),tipo:$('#eTipo').value,
@@ -770,8 +772,12 @@ function openEdit(id){
       setsMe:Math.max(0,parseInt($('#eMe').value)||0),setsOp:Math.max(0,parseInt($('#eOp').value)||0)
     });
     if(isNew)matches.push(rec);else matches=matches.map(x=>x.id===rec.id?rec:x);
-    saveM();close();toast('Partida salva');render();
+    saveM();close();render();
+    if(mais&&isNew){toast('Partida salva · registre a próxima');openEdit('new',{date:rec.date,opp:rec.opp,tipo:rec.tipo,meta:rec.meta})}
+    else toast('Partida salva');
   };
+  $('#eSave').onclick=()=>salvar(false);
+  const sm=$('#eSaveMore');if(sm)sm.onclick=()=>salvar(true);
 }
 function delMatch(id){
   const m=matches.find(x=>x.id===id);if(!m)return;
