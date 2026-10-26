@@ -182,8 +182,15 @@ body.live main{max-width:none;margin:0;padding:0}
 .lsets{display:inline-block;margin-top:8px;background:rgba(255,255,255,.22);border-radius:99px;padding:4px 14px;font-size:clamp(14px,3.6vw,20px);font-weight:800}
 .num{font-size:min(28vh,56vw);font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
 @media(orientation:landscape){.num{font-size:min(52vh,26vw)}}
-.num.pop{animation:pop .22s ease}
-@keyframes pop{0%{transform:scale(.88)}60%{transform:scale(1.07)}100%{transform:scale(1)}}
+.num.pop{animation:pop .32s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes pop{0%{transform:scale(.7);opacity:.6}50%{transform:scale(1.18)}100%{transform:scale(1);opacity:1}}
+.half.flash{animation:flash .45s ease}
+@keyframes flash{0%{filter:brightness(1.6)}50%{filter:brightness(1.25)}100%{filter:brightness(1)}}
+.celebrate{position:fixed;inset:0;z-index:100;pointer-events:none;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.celebrate .ctext{font-size:clamp(4rem,20vw,9rem);font-weight:900;color:#fff;text-shadow:0 0 40px rgba(230,185,77,.8),0 8px 30px rgba(0,0,0,.5);animation:celeb .9s cubic-bezier(.2,.9,.3,1.2) forwards}
+@keyframes celeb{0%{transform:scale(.3);opacity:0}40%{transform:scale(1.2);opacity:1}100%{transform:scale(1);opacity:0}}
+.confetti{position:absolute;width:10px;height:10px;border-radius:2px;opacity:0;animation:fall 1.4s ease-out forwards}
+@keyframes fall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
 .mn{position:absolute;right:5%;top:calc(env(safe-area-inset-top,0px) + 4%);width:60px;height:60px;border-radius:50%;border:0;background:rgba(255,255,255,.95);color:#000;font-size:2.1rem;font-weight:900;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
 .mid{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.55);color:#fff;font-weight:800;font-size:.8rem;padding:7px 16px;border-radius:99px;pointer-events:none;white-space:nowrap;z-index:5;font-family:system-ui,sans-serif}
 .fab{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);width:64px;height:64px;border-radius:50%;border:0;background:#fff;color:#000;font-size:1.9rem;font-weight:900;line-height:1;z-index:30;cursor:pointer;display:grid;place-items:center;padding:0;box-shadow:0 4px 16px rgba(0,0,0,.35)}
@@ -211,7 +218,7 @@ body.live main{max-width:none;margin:0;padding:0}
 /* ======== Constantes e utilidades ======== */
 const MEU_NOME='Renato';
 const OPP_DEFAULT='Cabelo';
-const APP_VERSION='2.2.2';
+const APP_VERSION='2.2.3';
 const VER_URL='https://raw.githubusercontent.com/rdouradovisciano-cyber/placar-sinuca/main/version.json';
 const APK_URL='https://github.com/rdouradovisciano-cyber/placar-sinuca/releases/latest';
 const KEY_M='sinuca_partidas_v1', KEY_C='sinuca_atual_v1', KEY_B='sinuca_backup_v1', KEY_CB='sinuca_atual_backup_v1';
@@ -391,7 +398,7 @@ let calY=_hj.getFullYear(),calM=_hj.getMonth(),calSel=null;
 let setup={opp:'Cabelo',tipo:'3bolas',meta:8,setsToWin:0,date:hoje()};
 let F={tipo:'all',opp:'all',per:'all'};
 let wake=null;
-let bump=null;
+let bump=null, flash=null, celebrate=null;
 
 function saveM(){save(KEY_M,matches);save(KEY_B,matches)}
 function saveC(){save(KEY_C,cur);save(KEY_CB,cur)}
@@ -511,18 +518,23 @@ function bindSetup(){
 function viewLive(){
   const c=cur,t=TIPOS[c.tipo];
   const half=(who,nome,pts,sets,cls)=>`
-  <div class="half ${cls}" data-act="add" data-who="${who}" style="background:${loadPC()[who]};color:${fgDe(loadPC()[who])}">
+  <div class="half ${cls} ${flash===who?'flash':''}" data-act="add" data-who="${who}" style="background:${loadPC()[who]};color:${fgDe(loadPC()[who])}">
     <div class="hd"><div class="lname" data-pname="${who}">${esc(nome)}</div><div class="lsets">Sets ${sets}</div></div>
     <button class="mn" data-act="sub" data-who="${who}" aria-label="Tirar 1 ponto">−</button>
     <div class="num ${bump===who?'pop':''}">${pts}</div>
+    ${overlay}
   </div>`;
-  bump=null;
+  bump=null;flash=null;
+  const confetti = celebrate ? Array.from({length:40},(_,i)=>'<span class="confetti" style="left:'+(Math.random()*100)+'%;top:'+(Math.random()*20)+'%;background:'+['#e6b94d','#fff','#4cc38a','#e0615a','#5dd4ff'][i%5]+';animation-delay:'+(Math.random()*.4)+'s"></span>').join('') : '';
+  const overlay = celebrate ? '<div class="celebrate">'+confetti+'<div class="ctext">SET!</div></div>' : '';
+  celebrate=null;
   return `<div class="lv">
     ${half('op',c.opp,c.op,c.setsOp,'opp')}
     ${half('me',MEU_NOME,c.me,c.setsMe,'me')}
     <div class="mid">${t.nome} · Set ${c.log.length+1} · meta ${c.meta}</div>
     <button class="fab l" id="bUndo" aria-label="Desfazer" ${c.undo.length?'':'disabled'}>↶</button>
     <button class="fab r" id="bMenu" aria-label="Menu">⋯</button>
+    ${overlay}
   </div>`;
 }
 function closeMenu(){$('#modalRoot').innerHTML=''}
@@ -550,6 +562,7 @@ function snap(){cur.undo.push({me:cur.me,op:cur.op,setsMe:cur.setsMe,setsOp:cur.
 function act(a,who){
   const c=cur;if(!c)return;
   if(a==='add'||a==='sub')bump=who;
+  if(a==='add')flash=who;
   if(a==='add'){
     snap();c[who]++;vib(15);
     if(c[who]>=c.meta){
@@ -557,7 +570,7 @@ function act(a,who){
       const sid=uid(),agora=Date.now();
       c.log.push({w,me:c.me,op:c.op,sid,t:agora});
       placares.push({id:sid,matchId:c.id,ts:agora,date:hoje(),opp:c.opp,tipo:c.tipo,meta:c.meta,me:c.me,op:c.op,w});savePL();
-      if(w==='me')c.setsMe++;else c.setsOp++;
+      if(w==='me')c.setsMe++;else c.setsOp++; celebrate=true;
       const nome=w==='me'?MEU_NOME:c.opp;
       c.me=0;c.op=0;vib([60,40,60]);
       toast('🏆 Set para '+nome+'!');
