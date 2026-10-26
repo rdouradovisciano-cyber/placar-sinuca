@@ -169,31 +169,25 @@ input[type=file]{padding:10px;font-size:.9rem}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .hint{font-size:.78rem;color:var(--mut);margin-top:6px}
 
-/* ===== Tela do placar ===== */
-body.live{padding:0;overflow:hidden}
+/* ===== Tela do placar (tela cheia dividida) ===== */
+body.live{padding:0;overflow:hidden;background:#000}
 body.live header,body.live nav{display:none}
 body.live main{max-width:none;margin:0;padding:0}
-.lv{position:fixed;inset:0;display:flex;flex-direction:column;gap:12px;background:var(--bg);
-  padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));
-  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
-.lvtop{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
-.lvcards{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
-@media(orientation:landscape){.lvcards{flex-direction:row}}
-.half{flex:1;position:relative;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;overflow:hidden;border-radius:30px;box-shadow:0 14px 34px -16px rgba(15,23,42,.45)}
-.half:active{filter:brightness(1.1)}
-.hd{position:absolute;left:20px;top:18px;max-width:62%}
-.lname{font-size:clamp(20px,6vw,34px);font-weight:800;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em}
-.lsets{display:inline-block;margin-top:8px;background:rgba(255,255,255,.24);border-radius:99px;padding:5px 14px;font-size:clamp(13px,3.4vw,17px);font-weight:800}
-.num{font-size:min(22vh,52vw);font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
-@media(orientation:landscape){.num{font-size:min(44vh,22vw)}}
+.lv{position:fixed;inset:0;display:flex;flex-direction:column;background:#000;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;font-family:"Montserrat","Poppins",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+@media(orientation:landscape){.lv{flex-direction:row}}
+.half{flex:1;position:relative;display:flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;overflow:hidden}
+.half:active{filter:brightness(1.12)}
+.hd{position:absolute;left:6%;top:calc(env(safe-area-inset-top,0px) + 4%);max-width:64%}
+.lname{font-size:clamp(30px,9vw,64px);font-weight:900;line-height:1.05;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lsets{display:inline-block;margin-top:8px;background:rgba(255,255,255,.22);border-radius:99px;padding:4px 14px;font-size:clamp(14px,3.6vw,20px);font-weight:800}
+.num{font-size:min(28vh,56vw);font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+@media(orientation:landscape){.num{font-size:min(52vh,26vw)}}
 .num.pop{animation:pop .22s ease}
 @keyframes pop{0%{transform:scale(.88)}60%{transform:scale(1.07)}100%{transform:scale(1)}}
-.mn{position:absolute;right:16px;top:14px;width:56px;height:56px;border-radius:50%;border:0;background:rgba(255,255,255,.92);color:#0f172a;font-size:2rem;font-weight:800;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
-.lvtools{display:flex;gap:10px}
-.lvbtn{flex:1;height:58px;border-radius:18px;border:1.5px solid var(--line);background:var(--panel);color:var(--txt);font-size:1rem;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:var(--sh);display:flex;align-items:center;justify-content:center;gap:8px}
-.lvbtn:active{transform:scale(.98)}
-.lvbtn:disabled{opacity:.45}
-.lvbtn.pri{background:var(--gold);color:var(--onacc);border-color:transparent}
+.mn{position:absolute;right:5%;top:calc(env(safe-area-inset-top,0px) + 4%);width:60px;height:60px;border-radius:50%;border:0;background:rgba(255,255,255,.95);color:#000;font-size:2.1rem;font-weight:900;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+.mid{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.55);color:#fff;font-weight:800;font-size:.8rem;padding:7px 16px;border-radius:99px;pointer-events:none;white-space:nowrap;z-index:5;font-family:system-ui,sans-serif}
+.fab{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);width:64px;height:64px;border-radius:50%;border:0;background:#fff;color:#000;font-size:1.9rem;font-weight:900;line-height:1;z-index:30;cursor:pointer;display:grid;place-items:center;padding:0;box-shadow:0 4px 16px rgba(0,0,0,.35)}
+.fab.l{left:18px}.fab.r{right:18px}.fab:disabled{opacity:.45}
 .modal .setadj button{width:46px;height:46px;font-size:1.3rem}
 .modal .setadj b{font-size:1.4rem;min-width:28px;text-align:center;color:var(--gold)}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:8px}
@@ -217,7 +211,7 @@ body.live main{max-width:none;margin:0;padding:0}
 /* ======== Constantes e utilidades ======== */
 const MEU_NOME='Renato';
 const OPP_DEFAULT='Cabelo';
-const APP_VERSION='2.0.0';
+const APP_VERSION='2.1.0';
 const VER_URL='https://raw.githubusercontent.com/rdouradovisciano-cyber/placar-sinuca/main/version.json';
 const APK_URL='https://github.com/rdouradovisciano-cyber/placar-sinuca/releases/latest';
 const KEY_M='sinuca_partidas_v1', KEY_C='sinuca_atual_v1', KEY_B='sinuca_backup_v1', KEY_CB='sinuca_atual_backup_v1';
@@ -243,8 +237,8 @@ function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){toast(
 
 /* ======== Cores dos jogadores ======== */
 const KEY_P='sinuca_cores_jog_v1';
-const COR_PADRAO={me:'#dc2626',op:'#2563eb'};
-const COR_OPCOES=['#2563eb','#dc2626','#0a7a3d','#d97706','#6d28d9','#be185d','#0e7490','#374151','#111111','#f5f5f0'];
+const COR_PADRAO={me:'#a6000e',op:'#0029e6'};
+const COR_OPCOES=['#0029e6','#a6000e','#0a7a3d','#d97706','#6d28d9','#be185d','#0e7490','#374151','#111111','#f5f5f0'];
 function loadPC(){let v=null;try{v=JSON.parse(localStorage.getItem(KEY_P))}catch(e){}const ok=h=>typeof h==='string'&&/^#[0-9a-fA-F]{6}$/.test(h);return {me:v&&ok(v.me)?v.me:COR_PADRAO.me,op:v&&ok(v.op)?v.op:COR_PADRAO.op}}
 function savePC(c){try{localStorage.setItem(KEY_P,JSON.stringify(c))}catch(e){}}
 function fgDe(hex){const [r,g,b]=hexToRgb(hex);return (0.299*r+0.587*g+0.114*b)>160?'#111111':'#ffffff'}
@@ -522,15 +516,11 @@ function viewLive(){
   </div>`;
   bump=null;
   return `<div class="lv">
-    <div class="lvtop"><span class="chip"><b>${t.nome}</b></span><span class="chip">Set ${c.log.length+1} · meta <b>${c.meta}</b></span>${c.setsToWin?`<span class="chip">vence com <b>${c.setsToWin}</b> sets</span>`:''}</div>
-    <div class="lvcards">
-      ${half('op',c.opp,c.op,c.setsOp,'opp')}
-      ${half('me',MEU_NOME,c.me,c.setsMe,'me')}
-    </div>
-    <div class="lvtools">
-      <button class="lvbtn" id="bUndo" aria-label="Desfazer" ${c.undo.length?'':'disabled'}>↶ Desfazer</button>
-      <button class="lvbtn pri" id="bMenu" aria-label="Menu">⋯ Menu</button>
-    </div>
+    ${half('op',c.opp,c.op,c.setsOp,'opp')}
+    ${half('me',MEU_NOME,c.me,c.setsMe,'me')}
+    <div class="mid">${t.nome} · Set ${c.log.length+1} · meta ${c.meta}</div>
+    <button class="fab l" id="bUndo" aria-label="Desfazer" ${c.undo.length?'':'disabled'}>↶</button>
+    <button class="fab r" id="bMenu" aria-label="Menu">⋯</button>
   </div>`;
 }
 function closeMenu(){$('#modalRoot').innerHTML=''}
