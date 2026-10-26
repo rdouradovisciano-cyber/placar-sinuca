@@ -109,3 +109,6 @@ keystore de debug e os scripts locais não vão para o site.
 ```bash
 firebase deploy --only hosting
 ```
+
+## Para quem vai continuar o desenvolvimento
+Veja `AGENTS.md` (arquitetura, regras e como publicar).
