@@ -257,7 +257,7 @@ body.live main{max-width:none;margin:0;padding:0}
 /* ======== Constantes e utilidades ======== */
 const MEU_NOME='Renato';
 const OPP_DEFAULT='Cabelo';
-const APP_VERSION='1.6.1';
+const APP_VERSION='1.7.0';
 const VER_URL='https://raw.githubusercontent.com/rdouradovisciano-cyber/placar-sinuca/main/version.json';
 const APK_URL='https://github.com/rdouradovisciano-cyber/placar-sinuca/releases/latest';
 const KEY_M='sinuca_partidas_v1', KEY_C='sinuca_atual_v1', KEY_B='sinuca_backup_v1', KEY_CB='sinuca_atual_backup_v1';
@@ -445,9 +445,12 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 
 /* ======== Cálculos ======== */
 function resultado(m){return m.setsMe>m.setsOp?'w':m.setsMe<m.setsOp?'l':'d'}
+const KEY_MC='sinuca_contagem_v1';
+let modoSets=false;try{modoSets=localStorage.getItem(KEY_MC)==='set'}catch(e){}
 function calc(list){
-  const n=list.length;let w=0,l=0,d=0,sf=0,sa=0;
+  let n=list.length,w=0,l=0,d=0,sf=0,sa=0;
   list.forEach(m=>{const r=resultado(m);if(r==='w')w++;else if(r==='l')l++;else d++;sf+=m.setsMe;sa+=m.setsOp});
+  if(modoSets){n=sf+sa;w=sf;l=sa;d=0}
   return {n,w,l,d,sf,sa,pct:n?Math.round(w/n*100):0};
 }
 function oppKey(s){return String(s).trim().toLowerCase()}
@@ -677,9 +680,14 @@ function viewStats(){
   setTimeout(bindFilters,0);
   if(!matches.length)return `<h2>Relatórios</h2><div class="card empty">Nenhuma partida registrada ainda.<br>Jogue ou registre uma partida para ver suas estatísticas.</div>`;
   const L=filtrar(),S=calc(L);
-  let h=`<h2>Relatórios</h2>${filtersHTML()}
+  const un=modoSets?'set(s)':'partida(s)';
+  let h=`<h2>Relatórios</h2>
+  <div class="seg" style="grid-template-columns:1fr 1fr;margin-bottom:12px">
+    <button data-conta="partida" class="${modoSets?'':'sel'}">Contar por partida<small>2×0 = 1 vitória</small></button>
+    <button data-conta="set" class="${modoSets?'sel':''}">Contar por set<small>2×0 = 2 vitórias</small></button>
+  </div>${filtersHTML()}
   <div class="grid g4">
-    <div class="card stat"><div class="v">${S.n}</div><div class="k">Partidas</div></div>
+    <div class="card stat"><div class="v">${S.n}</div><div class="k">${modoSets?'Sets jogados':'Partidas'}</div></div>
     <div class="card stat win"><div class="v">${S.w}</div><div class="k">Vitórias</div></div>
     <div class="card stat loss"><div class="v">${S.l}</div><div class="k">Derrotas</div></div>
     <div class="card stat"><div class="v">${S.pct}%</div><div class="k">Aproveitamento</div></div>
@@ -690,7 +698,7 @@ function viewStats(){
   const Lt=filtrar('tipo');
   h+=`<h3>Desempenho por tipo de jogo</h3><div class="card">`+Object.entries(TIPOS).map(([k,v])=>{
     const s=calc(Lt.filter(m=>m.tipo===k));
-    return `<div class="trow"><div class="nm">${v.nome}<div class="sub">${s.n} partida(s) · ${s.w}V ${s.l}D${s.d?' '+s.d+'E':''}</div></div>
+    return `<div class="trow"><div class="nm">${v.nome}<div class="sub">${s.n} ${un} · ${s.w}V ${s.l}D${s.d?' '+s.d+'E':''}</div></div>
       <div class="mini"><div class="bar"><i style="width:${s.pct}%"></i></div></div><div class="pc">${s.pct}%</div></div>`}).join('')+`</div>`;
 
   // por adversário
@@ -699,7 +707,7 @@ function viewStats(){
   Lo.forEach(m=>{const k=oppKey(m.opp);(map[k]=map[k]||{nome:m.opp.trim(),l:[]}).l.push(m)});
   const rows=Object.entries(map).map(([k,o])=>({k,nome:o.nome,s:calc(o.l),l:o.l.slice().sort(sortDesc)})).sort((a,b)=>b.s.n-a.s.n||a.nome.localeCompare(b.nome));
   h+=`<h3>Confrontos por adversário</h3><div class="card">`+(rows.length?rows.map(r=>`
-    <div class="trow clickable" data-opp="${esc(r.k)}"><div class="nm">${esc(r.nome)}<div class="sub">${r.s.n} jogo(s) · ${r.s.w}V ${r.s.l}D${r.s.d?' '+r.s.d+'E':''} · sets ${r.s.sf}×${r.s.sa}</div></div>
+    <div class="trow clickable" data-opp="${esc(r.k)}"><div class="nm">${esc(r.nome)}<div class="sub">${r.s.n} ${un} · ${r.s.w}V ${r.s.l}D${r.s.d?' '+r.s.d+'E':''} · sets ${r.s.sf}×${r.s.sa}</div></div>
     <div class="dots">${r.l.slice(0,5).map(m=>{const x=resultado(m);return `<div class="dot ${x}">${x==='w'?'V':x==='l'?'D':'E'}</div>`}).join('')}</div>
     <div class="pc">${r.s.pct}%</div></div>`).join(''):'<div class="empty">Sem dados neste filtro.</div>')+`</div>
   <div class="hint">Toque em um adversário para filtrar todo o relatório por ele.</div>`;
@@ -935,6 +943,7 @@ document.addEventListener('click',e=>{
   if(t.dataset.agdel){delAg(t.dataset.agdel);return}
   if(t.dataset.agstart){startAg(t.dataset.agstart);return}
   if(t.dataset.agcal){const a=agenda.find(x=>x.id===t.dataset.agcal);if(a)window.open(gcalUrl(a),'_blank');return}
+  if(t.dataset.conta){modoSets=t.dataset.conta==='set';try{localStorage.setItem(KEY_MC,t.dataset.conta)}catch(e){}render();return}
   if(t.dataset.pcor){const [w,h]=t.dataset.pcor.split('|');setPC(w,h);return}
   if(t.dataset.act){act(t.dataset.act,t.dataset.who);return}
   if(t.dataset.mact){act(t.dataset.mact,t.dataset.who);openMenu();return}
