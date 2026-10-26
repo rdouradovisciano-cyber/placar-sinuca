@@ -1,16 +1,22 @@
 {
   "name": "placar-sinuca",
-  "version": "1.0.0",
+  "version": "2.3.0",
   "private": true,
   "description": "Placar e relatórios de sinuca e bilhar",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "bump": "node scripts/bump.mjs"
+  },
   "dependencies": {
     "@capacitor/android": "^6.2.0",
-    "@capacitor/cli": "^6.2.0",
     "@capacitor/core": "^6.2.0",
     "@capacitor/filesystem": "^6.0.0",
+    "@capacitor/local-notifications": "^6.1.0",
     "@capacitor/share": "^6.0.0"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5"
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.2.0",
+    "jsdom": "^24.1.3"
   }
 }

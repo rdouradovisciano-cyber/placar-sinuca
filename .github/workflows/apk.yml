@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -26,39 +30,72 @@ jobs:
       - name: Instalar dependências
         run: npm install
 
+      - name: Testar a lógica pura
+        run: npm test
+
       - name: Copiar o site para www
         run: |
           mkdir -p www
-          cp index.html version.json manifest.webmanifest sw.js icon.svg icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png www/
+          cp index.html styles.css core.js app.js version.json manifest.webmanifest sw.js www/
+          cp icon.svg icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png www/
 
       - name: Criar projeto Android
         run: |
           npx cap add android
-          npx capacitor-assets generate --android --iconBackgroundColor '#0d3b29' --iconBackgroundColorDark '#0d3b29' --splashBackgroundColor '#06120d' --splashBackgroundColorDark '#06120d'
+          npx capacitor-assets generate --android --iconBackgroundColor '#0d3b29' --iconBackgroundColorDark '#0d3b29' --splashBackgroundColor '#06120d' --splashBackgroundColorDark '#06120d' || echo "Aviso: não gerei os ícones do APK; seguindo com os padrões."
           npx cap sync android
 
-      - name: Usar a chave fixa de assinatura (permite instalar por cima)
+      - name: Definir versionCode
+        run: |
+          sed -i -E "s/versionCode [0-9]+/versionCode ${{ github.run_number }}/" android/app/build.gradle
+          grep -n "versionCode" android/app/build.gradle
+
+      - name: Configurar assinatura
+        id: sign
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           mkdir -p ~/.android
           cp signing/debug.keystore ~/.android/debug.keystore
-          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/" android/app/build.gradle
-          grep -n "versionCode" android/app/build.gradle
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PASS" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASS" ]; then
+            echo "Faltam segredos de assinatura: usando a chave debug (instala por cima, mas não serve para a Play Store)."
+            echo "task=assembleDebug" >> "$GITHUB_OUTPUT"
+            echo "apk=android/app/build/outputs/apk/debug/app-debug.apk" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > android/app/release.keystore
+          if python3 .github/scripts/release-signing.py; then
+            echo "task=assembleRelease" >> "$GITHUB_OUTPUT"
+            echo "apk=android/app/build/outputs/apk/release/app-release.apk" >> "$GITHUB_OUTPUT"
+          else
+            echo "Não consegui configurar a assinatura release; caindo para debug."
+            echo "task=assembleDebug" >> "$GITHUB_OUTPUT"
+            echo "apk=android/app/build/outputs/apk/debug/app-debug.apk" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Compilar APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        env:
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew ${{ steps.sign.outputs.task }} --no-daemon
 
       - name: Guardar APK como artefato
         uses: actions/upload-artifact@v4
         with:
           name: placar-sinuca-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ steps.sign.outputs.apk }}
 
       - name: Publicar em Releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk placar-sinuca.apk
-          gh release create "apk-${{ github.run_number }}" placar-sinuca.apk \
+          cp "${{ steps.sign.outputs.apk }}" placar-sinuca.apk
+          gh release delete apk-latest --yes --cleanup-tag || true
+          gh release create apk-latest placar-sinuca.apk \
             --title "Placar de Sinuca (build ${{ github.run_number }})" \
-            --notes "APK para instalar no Android. O app carrega o site publicado, então as próximas atualizações chegam sozinhas (botão Verificar atualização na aba Backup)."
+            --notes "APK para instalar no Android. O app roda offline e avisa quando houver versão nova (botão Verificar atualização na aba Backup)."

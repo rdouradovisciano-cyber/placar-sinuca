@@ -1,7 +1,23 @@
 {
   "hosting": {
     "public": ".",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "*.zip"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "*.zip",
+      "signing/**",
+      "tests/**",
+      "scripts/**",
+      ".github/**",
+      "android/**",
+      "www/**",
+      "*.ps1",
+      "url-cel.txt",
+      "abrir-no-cel.html",
+      "package.json",
+      "package-lock.json"
+    ],
     "headers": [
       { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
     ]
