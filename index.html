@@ -211,7 +211,7 @@ body.live main{max-width:none;margin:0;padding:0}
 /* ======== Constantes e utilidades ======== */
 const MEU_NOME='Renato';
 const OPP_DEFAULT='Cabelo';
-const APP_VERSION='2.1.0';
+const APP_VERSION='2.2.0';
 const VER_URL='https://raw.githubusercontent.com/rdouradovisciano-cyber/placar-sinuca/main/version.json';
 const APK_URL='https://github.com/rdouradovisciano-cyber/placar-sinuca/releases/latest';
 const KEY_M='sinuca_partidas_v1', KEY_C='sinuca_atual_v1', KEY_B='sinuca_backup_v1', KEY_CB='sinuca_atual_backup_v1';
@@ -243,9 +243,10 @@ function loadPC(){let v=null;try{v=JSON.parse(localStorage.getItem(KEY_P))}catch
 function savePC(c){try{localStorage.setItem(KEY_P,JSON.stringify(c))}catch(e){}}
 function fgDe(hex){const [r,g,b]=hexToRgb(hex);return (0.299*r+0.587*g+0.114*b)>160?'#111111':'#ffffff'}
 function setPC(who,hex,keepUI){const c=loadPC();c[who]=hex;savePC(c);render();if(cur&&!keepUI)refreshPCUI()}
+let pcWho=null;
 function pcRows(){
   const c=cur,pc=loadPC();
-  return [['me',MEU_NOME],['op',c.opp]].map(([w,n])=>`<div style="margin:6px 0 12px"><div class="hint" style="margin:0 0 6px">Cor de ${esc(n)}</div>
+  return [['me',MEU_NOME],['op',c.opp]].filter(([w])=>!pcWho||w===pcWho).map(([w,n])=>`<div style="margin:6px 0 12px"><div class="hint" style="margin:0 0 6px">Cor de ${esc(n)}</div>
     <div class="row" style="gap:8px">${COR_OPCOES.map(h=>`<button data-pcor="${w}|${h}" aria-label="${h}" style="width:36px;height:36px;border-radius:50%;border:${pc[w].toLowerCase()===h?'3px solid var(--gold)':'2px solid var(--line)'};background:${h};cursor:pointer;padding:0"></button>`).join('')}
     <input type="color" data-pcolor="${w}" value="${pc[w]}" style="width:44px;height:36px;padding:2px;border-radius:10px"></div></div>`).join('');
 }
@@ -379,6 +380,9 @@ let matches=load(KEY_M,[]);
 if(!matches.length){const b=load(KEY_B,[]);if(Array.isArray(b)&&b.length){matches=b;save(KEY_M,matches);toast('Backup restaurado automaticamente')}}
 let cur=load(KEY_C,null);if(!cur){const cb=load(KEY_CB,null);if(cb){cur=cb;save(KEY_C,cur)}}
 let tab='play';
+const KEY_PL='sinuca_placares_v1';
+let placares=load(KEY_PL,[]);if(!Array.isArray(placares))placares=[];
+function savePL(){save(KEY_PL,placares)}
 const KEY_A='sinuca_agenda_v1';
 let agenda=load(KEY_A,[]);if(!Array.isArray(agenda))agenda=[];
 function saveA(){save(KEY_A,agenda)}
@@ -410,9 +414,9 @@ function calc(list){
   return {n,w,l,d,sf,sa,pct:n?Math.round(w/n*100):0};
 }
 function oppKey(s){return String(s).trim().toLowerCase()}
-function filtrar(skip){
+function filtrar(skip,lista){
   const now=new Date();
-  return matches.filter(m=>{
+  return (lista||matches).filter(m=>{
     if(skip!=='tipo'&&F.tipo!=='all'&&m.tipo!==F.tipo)return false;
     if(skip!=='opp'&&F.opp!=='all'&&oppKey(m.opp)!==F.opp)return false;
     if(skip!=='per'&&F.per!=='all'){
@@ -428,7 +432,7 @@ function filtrar(skip){
 function sortDesc(a,b){return (b.date.localeCompare(a.date))||((b.createdAt||0)-(a.createdAt||0))}
 function oponentes(){
   const map={};
-  matches.forEach(m=>{const k=oppKey(m.opp);if(!map[k])map[k]=m.opp.trim()});
+  matches.concat(placares).forEach(m=>{const k=oppKey(m.opp);if(!map[k])map[k]=m.opp.trim()});
   return Object.entries(map).sort((a,b)=>a[1].localeCompare(b[1]));
 }
 
@@ -510,7 +514,7 @@ function viewLive(){
   const c=cur,t=TIPOS[c.tipo];
   const half=(who,nome,pts,sets,cls)=>`
   <div class="half ${cls}" data-act="add" data-who="${who}" style="background:${loadPC()[who]};color:${fgDe(loadPC()[who])}">
-    <div class="hd"><div class="lname" ${who==='op'?'data-oppname="1"':''}>${esc(nome)}</div><div class="lsets">Sets ${sets}</div></div>
+    <div class="hd"><div class="lname" data-pname="${who}">${esc(nome)}</div><div class="lsets">Sets ${sets}</div></div>
     <button class="mn" data-act="sub" data-who="${who}" aria-label="Tirar 1 ponto">−</button>
     <div class="num ${bump===who?'pop':''}">${pts}</div>
   </div>`;
@@ -532,22 +536,15 @@ function openMenu(){
     <div class="hint" style="margin:0 0 8px">${t.nome} · meta ${c.meta} · ${fmtD(c.date)} · ${DIAS_C[dow(c.date)]}${c.setsToWin?' · vence com '+c.setsToWin+' sets':''}</div>
     ${[['me',MEU_NOME,c.setsMe],['op',c.opp,c.setsOp]].map(([w,n,v])=>`<div class="trow"><div class="nm">Sets de ${esc(n)}</div><div class="setadj"><button data-mact="setsub" data-who="${w}">−</button><b>${v}</b><button data-mact="setadd" data-who="${w}">+</button></div></div>`).join('')}
     ${c.log.length?`<div class="setlog" style="justify-content:flex-start;margin:10px 0">${c.log.map((x,i)=>`<span class="${x.w==='me'?'w':'l'}">S${i+1}: ${x.me}×${x.op}</span>`).join('')}</div>`:''}
-    <h3 style="margin:14px 0 4px">Cores dos jogadores</h3>
-    <div id="pcBox">${pcRows()}</div>
-    <div class="grid g2" style="margin:12px 0">
-      <button class="btn ghost" id="mUndo" ${c.undo.length?'':'disabled style="opacity:.4"'}>↶ Desfazer</button>
-      <button class="btn ghost" id="mZero">⟲ Zerar set</button>
-    </div>
-    <div class="grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:12px">
-      <button class="btn ghost sm" data-go="cal">📅 Calendário</button>
+    <div class="grid" style="grid-template-columns:repeat(3,1fr);margin:14px 0 12px">
       <button class="btn ghost sm" data-go="stats">📊 Relatórios</button>
       <button class="btn ghost sm" data-go="hist">📋 Histórico</button>
       <button class="btn ghost sm" data-go="data">💾 Backup</button>
     </div>
-    <button class="btn ghost block" id="mSaveHist" style="margin-bottom:10px">Salvar no historico (sem encerrar)</button>
     <button class="btn gold block" id="mEnd" style="padding:16px;margin-bottom:10px">🏁 Encerrar partida</button>
     <button class="btn red block" id="mDrop" style="margin-bottom:10px">Descartar partida</button>
     <button class="btn ghost block" id="mClose">Fechar</button>
+    <div class="hint" style="text-align:center">Dica: segure o nome de um jogador na tela para mudar a cor.</div>
   </div></div>`;
   $('#ov').onclick=e=>{if(e.target.id==='ov')closeMenu()};
 }
@@ -559,7 +556,9 @@ function act(a,who){
     snap();c[who]++;vib(15);
     if(c[who]>=c.meta){
       const w=who;
-      c.log.push({w,me:c.me,op:c.op});
+      const sid=uid(),agora=Date.now();
+      c.log.push({w,me:c.me,op:c.op,sid,t:agora});
+      placares.push({id:sid,matchId:c.id,ts:agora,date:hoje(),opp:c.opp,tipo:c.tipo,meta:c.meta,me:c.me,op:c.op,w});savePL();
       if(w==='me')c.setsMe++;else c.setsOp++;
       const nome=w==='me'?MEU_NOME:c.opp;
       c.me=0;c.op=0;vib([60,40,60]);
@@ -576,12 +575,15 @@ function act(a,who){
 }
 function undo(){
   const c=cur;if(!c||!c.undo.length)return;
-  const s=c.undo.pop();Object.assign(c,s);saveC();render();toast('Ação desfeita');
+  const s=c.undo.pop();Object.assign(c,s);
+  const vivos=new Set(c.log.map(x=>x.sid).filter(Boolean));
+  const antes=placares.length;placares=placares.filter(x=>x.matchId!==c.id||vivos.has(x.id));if(placares.length!==antes)savePL();
+  saveC();render();toast('Ação desfeita');
 }
 function saveInProgressToHistory(){
   const c=cur;if(!c)return;
   const rec={id:c.id,date:c.date,opp:c.opp,tipo:c.tipo,meta:c.meta,setsMe:c.setsMe,setsOp:c.setsOp,
-    sets:c.log.map(s=>({w:s.w,me:s.me,op:s.op})),createdAt:c.createdAt,emAndamento:true,me:c.me,op:c.op};
+    sets:c.log.map(s=>({w:s.w,me:s.me,op:s.op,sid:s.sid,t:s.t})),createdAt:c.createdAt,emAndamento:true,me:c.me,op:c.op};
   const idx=matches.findIndex(m=>m.id===c.id);
   if(idx>=0)matches[idx]=rec;else matches.push(rec);
   saveM();toast('Partida salva no histórico');
@@ -589,12 +591,12 @@ function saveInProgressToHistory(){
 function resumeMatch(id){
   const m=matches.find(x=>x.id===id);if(!m||!m.emAndamento)return;
   cur={id:m.id,date:m.date,opp:m.opp,tipo:m.tipo,meta:m.meta,setsToWin:0,me:m.me||0,op:m.op||0,
-    setsMe:m.setsMe||0,setsOp:m.setsOp||0,log:(m.sets||[]).map(s=>({w:s.w,me:s.me,op:s.op})),undo:[],createdAt:m.createdAt};
+    setsMe:m.setsMe||0,setsOp:m.setsOp||0,log:(m.sets||[]).map(s=>({w:s.w,me:s.me,op:s.op,sid:s.sid,t:s.t})),undo:[],createdAt:m.createdAt};
   saveC();tab='play';render();toast('Partida retomada');
 }
 function finish(){
   const c=cur;
-  const rec={id:c.id,date:c.date,opp:c.opp,tipo:c.tipo,meta:c.meta,setsMe:c.setsMe,setsOp:c.setsOp,sets:c.log.map(s=>({w:s.w,me:s.me,op:s.op})),createdAt:c.createdAt};
+  const rec={id:c.id,date:c.date,opp:c.opp,tipo:c.tipo,meta:c.meta,setsMe:c.setsMe,setsOp:c.setsOp,sets:c.log.map(s=>({w:s.w,me:s.me,op:s.op,sid:s.sid,t:s.t})),createdAt:c.createdAt};
   const fi=matches.findIndex(m=>m.id===rec.id);if(fi>=0)matches[fi]=rec;else matches.push(rec);saveM();
   cur=defaultCur();saveC();try{wake&&wake.release()}catch(e){}
   const r=resultado(rec);
@@ -699,11 +701,35 @@ function itemHist(m){
     '<div class="mact">'+resumeBtn+'<button class="ibtn" data-edit="'+m.id+'" title="Editar">&#9998;</button><button class="ibtn" data-del="'+m.id+'" title="Apagar">&#128465;</button></div>'+
   '</div>';
 }
+let histModo='sets';
+function hhmm(ts){const d=new Date(ts);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+function itemSet(p){
+  const g=p.w==='me';
+  return `<div class="mitem">
+    <div class="mdate"><b>${hhmm(p.ts)}</b>${fmtD(p.date).slice(0,5)}</div>
+    <div class="minfo"><div class="o">${esc(MEU_NOME)} × ${esc(p.opp)}</div>
+      <div class="t">${TIPOS[p.tipo]?TIPOS[p.tipo].nome:esc(p.tipo)} · meta ${p.meta||'-'}</div>
+      <div style="margin-top:5px"><span class="badge ${g?'w':'l'}" style="margin:0">${g?'SET GANHO':'SET PERDIDO'}</span></div></div>
+    <div class="mscore" style="color:${g?'var(--green)':'var(--red)'}">${p.me}×${p.op}</div>
+    <div class="mact"><button class="ibtn" data-pldel="${p.id}" title="Apagar">&#128465;</button></div>
+  </div>`;
+}
+function viewHistSets(){
+  const L=filtrar(undefined,placares).sort((a,b)=>b.ts-a.ts);
+  if(!L.length)return `<div class="card"><div class="empty">${placares.length?'Nenhum set neste filtro.':'Nenhum set registrado ainda.<br>Cada set fechado aparece aqui com o placar e o horário.'}</div></div>`;
+  const grupos={};L.forEach(p=>{(grupos[p.date]=grupos[p.date]||[]).push(p)});
+  return Object.keys(grupos).sort().reverse().map(d=>{
+    const g=grupos[d],v=g.filter(x=>x.w==='me').length;
+    return `<h3>${fmtD(d)} · ${DIAS[dow(d)]} · ${g.length} set(s) · ${v}V ${g.length-v}D</h3><div class="card">${g.map(itemSet).join('')}</div>`;
+  }).join('')+`<div class="hint" style="text-align:center;margin-top:12px">${L.length} set(s) listado(s)</div>`;
+}
 function viewHist(){
   setTimeout(bindFilters,0);
   const L=filtrar().sort(sortDesc);
+  const modo=`<div class="seg" style="grid-template-columns:1fr 1fr;margin-bottom:12px"><button data-hmodo="sets" class="${histModo==='sets'?'sel':''}">Sets<small>placar de cada set</small></button><button data-hmodo="partidas" class="${histModo==='partidas'?'sel':''}">Partidas<small>resultado final</small></button></div>`;
+  if(histModo==='sets')return `<div class="row sp"><h2 style="margin:0">Histórico</h2><button class="btn gold sm" data-edit="new">＋ Registrar</button></div><div style="height:12px"></div>${modo}${(matches.length||placares.length)?filtersHTML():''}${viewHistSets()}`;
   return `<div class="row sp"><h2 style="margin:0">Histórico</h2><button class="btn gold sm" data-edit="new">＋ Registrar</button></div>
-  <div style="height:12px"></div>
+  <div style="height:12px"></div>${modo}
   ${matches.length?filtersHTML():''}
   <div class="card">${L.length?L.map(itemHist).join(''):`<div class="empty">${matches.length?'Nenhuma partida neste filtro.':'Nenhuma partida salva ainda.'}</div>`}</div>
   ${L.length?`<div class="hint" style="text-align:center">${L.length} partida(s) listada(s)</div>`:''}`;
@@ -803,7 +829,7 @@ function download(name,text,type){
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
 }
 function exportJSON(){
-  download('sinuca-backup-'+hoje()+'.json',JSON.stringify({app:'placar-sinuca',versao:1,exportadoEm:new Date().toISOString(),matches,agenda},null,2),'application/json');
+  download('sinuca-backup-'+hoje()+'.json',JSON.stringify({app:'placar-sinuca',versao:1,exportadoEm:new Date().toISOString(),matches,agenda,placares},null,2),'application/json');
   toast('Backup JSON gerado');
 }
 function exportCSV(){
@@ -827,6 +853,15 @@ function importFile(file){
           setsMe:Math.max(0,+x.setsMe||0),setsOp:Math.max(0,+x.setsOp||0),sets:Array.isArray(x.sets)?x.sets:[],createdAt:+x.createdAt||Date.now()};
         if(ids.has(rec.id))return;ids.add(rec.id);matches.push(rec);add++;
       });
+      if(!Array.isArray(j)&&Array.isArray(j.placares)){
+        const pids=new Set(placares.map(x=>x.id));
+        j.placares.forEach(x=>{
+          if(!x||!/^\d{4}-\d{2}-\d{2}$/.test(x.date||'')||!(+x.ts))return;
+          const rec={id:String(x.id||uid()),matchId:String(x.matchId||''),ts:+x.ts,date:x.date,opp:String(x.opp||'Adversário'),tipo:TIPOS[x.tipo]?x.tipo:'livre',meta:+x.meta||0,me:Math.max(0,+x.me||0),op:Math.max(0,+x.op||0),w:x.w==='op'?'op':'me'};
+          if(pids.has(rec.id))return;pids.add(rec.id);placares.push(rec);
+        });
+        savePL();
+      }
       let addA=0;
       if(!Array.isArray(j)&&Array.isArray(j.agenda)){
         const aids=new Set(agenda.map(a=>a.id));
@@ -880,24 +915,38 @@ async function verificarAtualizacao(){
 let oppPressTimer=null, oppLongFired=false;
 function clearOppPress(){if(oppPressTimer){clearTimeout(oppPressTimer);oppPressTimer=null}}
 document.addEventListener('pointerdown',e=>{
-  const el=e.target.closest('[data-oppname]'); if(!el) return;
+  const el=e.target.closest('[data-pname]'); if(!el) return;
+  const who=el.dataset.pname;
   oppLongFired=false;
-  oppPressTimer=setTimeout(()=>{
-    oppLongFired=true;
-    if(!cur) return;
-    const novo=prompt('Nome do adversário:',cur.opp);
-    if(novo&&novo.trim()){cur.opp=novo.trim();saveC();render();toast('Adversário alterado')}
-  },500);
+  oppPressTimer=setTimeout(()=>{oppLongFired=true;if(cur){vib(25);openJog(who)}},500);
 });
 document.addEventListener('pointerup',clearOppPress);
 document.addEventListener('pointercancel',clearOppPress);
 document.addEventListener('pointerleave',clearOppPress);
-document.addEventListener('contextmenu',e=>{if(e.target.closest('[data-oppname]'))e.preventDefault()});
+document.addEventListener('contextmenu',e=>{if(e.target.closest('[data-pname]'))e.preventDefault()});
+function openJog(who){
+  pcWho=who;
+  const nome=who==='me'?MEU_NOME:cur.opp;
+  $('#modalRoot').innerHTML=`<div class="ov" id="ov"><div class="modal">
+    <h2>${esc(nome)}</h2>
+    ${who==='op'?`<div class="field"><label>Nome do adversário</label><input id="jNome" value="${esc(cur.opp)}" autocomplete="off"></div>`:''}
+    <div id="pcBox">${pcRows()}</div>
+    <button class="btn gold block" id="jOk" style="margin-top:6px">Pronto</button>
+  </div></div>`;
+  $('#ov').onclick=e=>{if(e.target.id==='ov')fechaJog()};
+}
+function fechaJog(){
+  const n=$('#jNome');
+  if(n&&cur){const v=n.value.trim();if(v&&v!==cur.opp){cur.opp=v;saveC()}}
+  pcWho=null;closeMenu();render();
+}
 
 /* ======== Eventos globais ======== */
 document.addEventListener('click',e=>{
   if(oppLongFired){oppLongFired=false;e.stopPropagation();e.preventDefault();return}
   const t=e.target.closest('button,[data-opp],[data-act],[data-go],[data-calday]');if(!t)return;
+  if(t.dataset.hmodo){histModo=t.dataset.hmodo;render();return}
+  if(t.dataset.pldel){if(confirm('Apagar este set do histórico?')){placares=placares.filter(x=>x.id!==t.dataset.pldel);savePL();render()}return}
   if(t.dataset.calday){calSel=t.dataset.calday;const d=parseD(calSel);calY=d.getFullYear();calM=d.getMonth();render();return}
   if(t.dataset.calnav!==undefined){const n=+t.dataset.calnav;if(n===0){const h=new Date();calY=h.getFullYear();calM=h.getMonth();calSel=hoje()}else{const d=new Date(calY,calM+n,1);calY=d.getFullYear();calM=d.getMonth()}render();return}
   if(t.dataset.agnew){openAg('new',t.dataset.agnew);return}
@@ -915,6 +964,7 @@ document.addEventListener('click',e=>{
   if(t.dataset.del){delMatch(t.dataset.del);return}
   if(t.dataset.opp){F.opp=t.dataset.opp;render();return}
   switch(t.id){
+    case 'jOk':fechaJog();break;
     case 'bUndo':undo();break;
     case 'bMenu':openMenu();break;
     case 'mUndo':undo();if(cur)openMenu();break;
@@ -930,7 +980,7 @@ document.addEventListener('click',e=>{
     case 'xJson':exportJSON();break;
     case 'xCsv':exportCSV();break;
     case 'xRestore':{const b=load(KEY_B,[]);const cb=load(KEY_CB,null);if((!Array.isArray(b)||!b.length)&&!cb){toast('Nenhum backup encontrado');break}if(!confirm('Restaurar o backup automatico? Isso substitui os dados atuais.'))break;if(Array.isArray(b)&&b.length){matches=b;saveM()}if(cb){cur=cb;saveC()}toast('Backup restaurado');render();break;}
-    case 'xAll':if(confirm('ZERAR TUDO?\n\nIsso apaga o histórico ('+matches.length+' partida(s)), a agenda e o placar atual. Não pode ser desfeito.\n\nExporte um backup antes, se quiser guardar.')&&confirm('Tem certeza? Tudo será apagado agora.')){matches=[];agenda=[];saveM();saveA();cur=defaultCur();saveC();try{localStorage.removeItem(KEY_B);localStorage.removeItem(KEY_CB);saveM();saveC()}catch(e){}toast('Tudo zerado. Boa sorte na terça!');render()}break;
+    case 'xAll':if(confirm('ZERAR TUDO?\n\nIsso apaga o histórico ('+matches.length+' partida(s)), a agenda e o placar atual. Não pode ser desfeito.\n\nExporte um backup antes, se quiser guardar.')&&confirm('Tem certeza? Tudo será apagado agora.')){matches=[];agenda=[];placares=[];saveM();saveA();savePL();cur=defaultCur();saveC();try{localStorage.removeItem(KEY_B);localStorage.removeItem(KEY_CB);saveM();saveC()}catch(e){}toast('Tudo zerado. Boa sorte na terça!');render()}break;
   }
 });
 document.addEventListener('input',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.pcolor)setPC(el.dataset.pcolor,el.value,true)});
